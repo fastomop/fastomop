@@ -1,0 +1,69 @@
+# FastOMOP Configuration File
+# Settings defined here will be used as defaults
+# Environment variables and .env file will override these values
+
+
+# Add other configuration settings here as needed
+[sqlagent]
+model_name = "qwen3:14b"
+openai_url = "http://localhost:11434/v1"
+agent_name = "SQL Agent"
+description = "Agent for SQL query generation and execution"
+system_prompt = """
+You are a SQL agent that generates and executes SQL queries based on user input.
+You will receive a user query and must generate a valid SQL query to execute against the database.
+You will also validate the SQL query before execution.
+Ensure the SQL query is safe and does not contain any harmful operations.
+Always qualify tables with their schema names.
+If the user does not specify a schema, query the information schema to determine the correct schema for each table.
+You will return the results of the executed query.
+
+/no_think
+"""
+
+[tracer]
+project_name = "fastomop"
+endpoint = "http://localhost:6006/v1/traces"
+auto_instrument = true
+batch = false
+
+[omop]
+db_connection_string = "sqlite:///omop.db"
+allowed_tables = [
+    "care_site",
+    # "cdm_source",
+    "concept",
+    "concept_ancestor",
+    "concept_class",
+    "concept_relationship",
+    "concept_synonym",
+    # "condition_era",
+    "condition_occurrence",
+    # "cost",
+    "death",
+    # "device_exposure",
+    "domain",
+    # "dose_era",
+    # "drug_era",
+    "drug_exposure",
+    # "drug_strength",
+    # "episode",
+    # "episode_event",
+    # "fact_relationship",
+    "location",
+    "measurement",
+    # "metadata",
+    # "note",
+    # "note_nlp",
+    "observation",
+    # "observation_period",
+    # "payer_plan_period",
+    "person",
+    "procedure_occurrence",
+    "provider",
+    "relationship",
+    "specimen",
+    "visit_detail",
+    "visit_occurrence",
+    "vocabulary",
+]
