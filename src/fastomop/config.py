@@ -91,10 +91,16 @@ class OMOPSettings(BaseModel):
 class FastOMOPSettings(BaseSettings):
     """Settings for FastOMOP."""
 
-    # Example setting
-    db_connection_string: str = "sqlite:///fastomop.db"
-    sqlagent: AgentSettings = AgentSettings()
+    # Agent settings
+    supervisor_agent: AgentSettings = AgentSettings()
+    sql_agent: AgentSettings = AgentSettings()
+    semantic_agent: AgentSettings = AgentSettings()
+
+    # OMOP settings
     omop: OMOPSettings = OMOPSettings()
+    db_connection_string: str = "sqlite:///fastomop.db"  # placeholder
+
+    # OpenTelemetry tracer settings
     tracer: TracerSettings = TracerSettings()
 
     model_config = SettingsConfigDict(

@@ -6,8 +6,8 @@ from fastomop.config import config as cfg
 from fasta2a.schema import AgentProvider
 
 
-model_name = cfg.sqlagent.model_name
-openai_url = cfg.sqlagent.openai_url
+model_name = cfg.semantic_agent.model_name
+openai_url = cfg.semantic_agent.openai_url
 
 # This is the MCP server for SQL agent
 # We should maintain a single registry for all MCP servers and call from there
@@ -22,16 +22,15 @@ model = OpenAIModel(model_name=model_name, provider=provider)
 
 agent = Agent(
     model=model,
-    name=cfg.sqlagent.agent_name,
+    name=cfg.semantic_agent.agent_name,
     output_retries=3,
     retries=5,
-    output_type=int,
-    system_prompt=cfg.sqlagent.system_prompt,
+    system_prompt=cfg.semantic_agent.system_prompt,
     toolsets=[mcp_server],
 )
 
 
 app = agent.to_a2a(
-    description=cfg.sqlagent.description,
+    description=cfg.semantic_agent.description,
     provider=AgentProvider(organization="FastOMOP Developers", url="example.com"),
 )

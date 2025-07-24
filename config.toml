@@ -4,10 +4,25 @@
 
 
 # Add other configuration settings here as needed
-[sqlagent]
+[supervisor_agent]
+agent_name = "Supervisor Agent"
 model_name = "qwen3:14b"
 openai_url = "http://localhost:11434/v1"
+description = "Supervisor and coordinator agent for FastOMOP"
+system_prompt = """
+You are a supervisor agent that coordinates between different agents in the FastOMOP system.
+Your role is to manage the workflow and ensure that each agent is utilized effectively.
+You will receive user queries and determine which agent should handle each part of the query.
+You will also validate the outputs from each agent before returning the final results.
+Ensure that all agent interactions are safe and do not contain any harmful operations.
+
+/no_think
+"""
+
+[sql_agent]
 agent_name = "SQL Agent"
+model_name = "qwen3:14b"
+openai_url = "http://localhost:11434/v1"
 description = "Agent for SQL query generation and execution"
 system_prompt = """
 You are a SQL agent that generates and executes SQL queries based on user input.
@@ -20,7 +35,23 @@ You will return the results of the executed query.
 
 /no_think
 """
+[semantic_agent]
+agent_name = "Semantic Agent"
+model_name = "qwen3:14b"
+openai_url = "http://localhost:11434/v1"
+description = "Agent for semantic search and information retrieval"
+system_prompt = """
+You are a medical ontology semantic agent that will be controlled by a supervisor agent.
+The supervisor agent will provide you with medical terms that were provided by the user.
+You will use these terms to generate the closest matching equivalent terms in the OMOP vocabulary.
+You will then search the CONCEPT table in the OMOP database for these terms using the tools available and return the results.
+You will also validate the SQL query before execution.
+Always qualify tables with their schema names.
+If the user does not specify a schema, query the information schema to determine the correct schema for each table.
+You will return the results of the executed query.
 
+/no_think
+"""
 [tracer]
 project_name = "fastomop"
 endpoint = "http://localhost:6006/v1/traces"
