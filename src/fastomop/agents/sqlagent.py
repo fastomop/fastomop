@@ -25,7 +25,7 @@ agent = Agent(
     name=cfg.sqlagent.agent_name,
     output_retries=3,
     retries=5,
-    output_type=str,
+    output_type=int,
     system_prompt=cfg.sqlagent.system_prompt,
     toolsets=[mcp_server],
 )
