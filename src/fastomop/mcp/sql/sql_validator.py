@@ -7,45 +7,11 @@ import sqlglot.expressions as exp
 import typing as t
 from . import exceptions as ex
 from sqlglot.optimizer.scope import build_scope
+from fastomop.config import config as cfg
 
-OMOP_TABLES = [
-    "care_site",
-    "cdm_source",
-    "concept",
-    "concept_ancestor",
-    "concept_class",
-    "concept_relationship",
-    "concept_synonym",
-    "condition_era",
-    "condition_occurrence",
-    "cost",
-    "death",
-    "device_exposure",
-    "domain",
-    "dose_era",
-    "drug_era",
-    "drug_exposure",
-    "drug_strength",
-    "episode",
-    "episode_event",
-    "fact_relationship",
-    "location",
-    "measurement",
-    "metadata",
-    "note",
-    "note_nlp",
-    "observation",
-    "observation_period",
-    "payer_plan_period",
-    "person",
-    "procedure_occurrence",
-    "provider",
-    "relationship",
-    "specimen",
-    "visit_detail",
-    "visit_occurrence",
-    "vocabulary",
-]
+OMOP_TABLES = (
+    cfg.omop.clinical_tables + cfg.omop.vocabulary_tables + cfg.omop.metadata_tables
+)
 
 
 class SQLValidator:
@@ -77,7 +43,7 @@ class SQLValidator:
 
     def _check_is_select_query(
         self, parsed_sql: exp.Expression
-    ) -> ex.NotSelectQueryError:
+    ) -> ex.NotSelectQueryError | None:
         """
         Check if the parsed SQL query is a SELECT statement.
 
@@ -92,7 +58,9 @@ class SQLValidator:
                 "Only SELECT statements are allowed for security reasons."
             )
 
-    def _check_is_omop_table(self, parsed_sql: exp.Expression) -> ex.TableNotFoundError:
+    def _check_is_omop_table(
+        self, parsed_sql: exp.Expression
+    ) -> ex.TableNotFoundError | None:
         """
         Check if all real table references in the query are OMOP CDM tables and
         ignores CTEs (defined in WITH clauses).
@@ -124,7 +92,7 @@ class SQLValidator:
 
     def _check_unauthorized_tables(
         self, tables: t.List[exp.Table]
-    ) -> ex.UnauthorizedTableError:
+    ) -> ex.UnauthorizedTableError | None:
         """
         Checks for unauthorized tables in the provided list of tables.
 
@@ -149,7 +117,7 @@ class SQLValidator:
 
     def _check_unauthorized_columns(
         self, columns: t.List[exp.Column]
-    ) -> ex.UnauthorizedColumnError:
+    ) -> ex.UnauthorizedColumnError | None:
         """
         Checks for unauthorized columns in the provided list of columns.
 
@@ -160,7 +128,7 @@ class SQLValidator:
             UnauthorizedColumnError: An error indicating the presence of unauthorized columns
             in the query, if any are found. Otherwise, returns None.
         """
-        print(self.exclude_columns)
+
         unauthorized_columns = [
             column.name.lower()
             for column in columns
@@ -173,7 +141,7 @@ class SQLValidator:
 
     def _check_source_value_columns(
         self, columns: t.List[exp.Column]
-    ) -> ex.UnauthorizedColumnError:
+    ) -> ex.UnauthorizedColumnError | None:
         """
         Check if the query contains source value or source_concept_id columns.
 
