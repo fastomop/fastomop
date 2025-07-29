@@ -1,4 +1,4 @@
-"""This is a placeholder"""
+"""This is a placeholder and not fully implemented."""
 
 from a2a.client import A2AClient
 from a2a.types import SendMessageRequest, AgentCard

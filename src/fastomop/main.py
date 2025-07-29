@@ -1,10 +1,10 @@
 """Main entry point for FastOMOP application."""
 
 import uvicorn
-from fastomop.otel import tracer
-from fastomop import __version__
-from opentelemetry.trace import SpanKind
 import asyncio
+from fastomop import __version__
+from fastomop.otel import tracer
+from opentelemetry.trace import SpanKind
 
 
 def run_a2a():

@@ -95,14 +95,14 @@ class OmopDatabase:
         )
         self.cdm_schema = cdm_schema
         self.vocab_schema = vocab_schema
-        print(connection_string)
+
         try:
             # Check if the connection string starts with a supported prefix
             if not connection_string.startswith(tuple(self.supported_databases)):
                 raise ValueError(
                     f"Unsupported database type in connection string: {connection_string}. Supported types are: {', '.join(self.supported_databases)}"
                 )
-            self.conn = ibis.connect(connection_string)
+            self.conn = ibis.connect(connection_string, read_only=read_only)
         except Exception as e:
             raise ConnectionError(f"Failed to connect to database: {str(e)}")
 

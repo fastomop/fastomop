@@ -47,10 +47,13 @@ graph_builder.add_node("sql_agent", node_sqlagent)
 graph_builder.add_node("semantic_agent", node_semantic_agent)
 
 graph_builder.add_edge(START, "semantic_agent")
+graph_builder.add_edge(START, "sql_agent")
 graph_builder.add_edge("semantic_agent", "sql_agent")
 graph_builder.add_edge("sql_agent", END)
 
 graph = graph_builder.compile()
+
+print(graph.get_graph().draw_mermaid())
 
 # model = ChatOpenAI(
 #     model=cfg.supervisor_agent.model_name,
