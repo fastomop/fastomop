@@ -6,7 +6,7 @@
 # Add other configuration settings here as needed
 [supervisor_agent]
 agent_name = "Supervisor Agent"
-model_name = "qwen3:14b"
+model_name = "gpt-oss:20b"
 openai_url = "http://localhost:11434/v1"
 description = "Supervisor and coordinator agent for FastOMOP"
 system_prompt = """
@@ -217,9 +217,10 @@ Remember: You are the intelligent coordinator that transforms user questions int
 
 [sql_agent]
 agent_name = "SQL Agent"
-model_name = "qwen3:14b"
+model_name = "gpt-oss:20b"
 openai_url = "http://localhost:11434/v1"
 description = "Agent for SQL query generation and execution"
+needs_omop_schema = true
 system_prompt = """
 # OMOP SQL Agent System Prompt
 
@@ -336,7 +337,7 @@ Remember: Your goal is to make OMOP CDM data accessible through natural language
 
 [semantic_agent]
 agent_name = "Semantic Agent"
-model_name = "qwen3:14b"
+model_name = "gpt-oss:20b"
 openai_url = "http://localhost:11434/v1"
 description = """
 Agent for semantic search and information retrieval.
@@ -345,6 +346,7 @@ This agent is also capable of converting abbreviations and synonyms to their ful
 Eg. T2DM to Type 2 Diabetes Mellitus. MS to Multiple Sclerosis, raised blood pressure to hypertension.
 It will use the tools available to search the CONCEPT table in the OMOP database for these terms.
 """
+needs_omop_schema = true
 system_prompt = """
 # OMOP Semantic Agent System Prompt
 
@@ -531,6 +533,11 @@ project_name = "fastomop"
 endpoint = "http://localhost:6006/v1/traces"
 auto_instrument = true
 batch = false
+
+[[mcp_servers]]
+name = "sql_mcp"
+command = "uv"
+args = ["run", "fastomop_mcp_sql"]
 
 [omop]
 db_connection_string = "sqlite:///omop.db"
