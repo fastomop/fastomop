@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 from dotenv import find_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Literal, Optional, Union
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -23,15 +24,56 @@ env_file_path = find_dotenv()
 assert config_file_path.exists(), f"Config file not found: {config_file_path}"
 
 
+class OpenAIConfig(BaseModel):
+    """Settings for OpenAI."""
+
+    provider_type: Literal["openai"] = "openai"
+    api_key: Optional[str] = None
+    base_url: str = "https://api.openai.com/v1"
+    organization: Optional[str] = None
+
+class AnthropicConfig(BaseModel):
+    """Settings for Anthropic."""
+
+    provider_type: Literal["anthropic"] = "anthropic"
+    api_key: Optional[str] = None
+    base_url: str = "https://api.anthropic.com/v1"
+
+class AzureConfig(BaseModel):
+    """Settings for Azure."""
+
+    provider_type: Literal["azure"] = "azure"
+    api_key: str
+    azure_endpoint: str
+    api_version: str = "2024-02-15-preview"
+
+def create_ollama_config() -> OpenAIConfig:
+    """Create an Ollama config."""
+    return OpenAIConfig(
+        provider_type="openai",
+        base_url="http://localhost:11434/v1",
+        api_key="ollama",
+    )
+
+ProviderConfig = Union[OpenAIConfig, AzureConfig, AnthropicConfig]
+
 class AgentSettings(BaseModel):
     """Settings for the agent configuration."""
 
     agent_name: str = "Default Agent"
-    model_name: str = "gpt-3.5-turbo"
-    openai_url: str = "http://localhost:11434/v1"
+    agent_type: Literal["pydantic", "llanggraph"] = "pydantic"
+    model_name: str = "qwen3:14b"
+    temperature: float = 0.1
+    provider: ProviderConfig = Field(default_factory=lambda: create_ollama_config())
     description: str = "A helpful assistant for FastOMOP."
+    needs_omop_schema: bool = False
     system_prompt: str = "You are a helpful assistant."
 
+class MCPServerSettings(BaseModel):
+    """Settings for the MCP server."""
+    name: str = "sql_mcp_server"
+    command: str = "uv"
+    args: list[str] = ["run", "fastomop_mcp_sql"]
 
 class TracerSettings(BaseModel):
     """Settings for the OpenTelemetry tracer."""
@@ -144,6 +186,9 @@ class FastOMOPSettings(BaseSettings):
     # OMOP settings
     omop: OMOPSettings = OMOPSettings()
     db_connection_string: str = "sqlite:///fastomop.db"  # placeholder
+
+    # MCP server settings
+    mcp_servers: list[MCPServerSettings] = [MCPServerSettings()]
 
     # OpenTelemetry tracer settings
     tracer: TracerSettings = TracerSettings()

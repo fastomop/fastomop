@@ -38,7 +38,10 @@ dependencies = [
     "fastmcp>=2.10.6",
     "httpx>=0.28.1",
     "ibis-framework[duckdb]>=10.6.0",
+    "langchain",
     "langchain-openai>=0.3.28",
+    "langchain-anthropic",
+    "langchain-mcp-adapters",
     "langgraph>=0.5.4",
     "langgraph-supervisor>=0.0.28",
     "langsmith>=0.4.8",
@@ -61,6 +64,7 @@ fastomop_mcp_sql = "fastomop.mcp.sql.server:main"
 
 [project.optional-dependencies]
 
+mcp-duckdb = ["ibis-framework[duckdb]>=10.6.0"]
 mcp-postgres = ["ibis-framework[postgres]>=10.6.0", "psycopg>=3.2.9"]
 
 [build-system]

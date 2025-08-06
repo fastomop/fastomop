@@ -2,9 +2,9 @@ from typing import Annotated
 from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-
-from fastomop.agents.sql_agent import agent as sql_agent
-from fastomop.agents.semantic_agent import agent as semantic_agent
+from fastomop.agents.semantic_agent import settings as semantic_agent_settings
+from fastomop.agents.sql_agent import settings as sql_agent_settings
+from fastomop.agents.agent_builder import create_agent
 
 
 class State(TypedDict):
@@ -14,46 +14,52 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 
-graph_builder = StateGraph(State)
+async def create_graph():
+    sql_agent = await create_agent(sql_agent_settings)
+    semantic_agent = await create_agent(semantic_agent_settings)
+
+    graph_builder = StateGraph(State)
+
+    async def node_sqlagent(state: State):
+        """
+        Node that calls the SQL agent.
+        """
+        # Call the SQL agent with the current messages
+
+        response = await sql_agent.run(f"{state['messages']}")
+
+        out = {"messages": response}
+
+        return out
 
 
-async def node_sqlagent(state: State):
-    """
-    Node that calls the SQL agent.
-    """
-    # Call the SQL agent with the current messages
+    async def node_semantic_agent(state: State):
+        """
+        Node that calls the Semantic agent.
+        """
+        # Call the Semantic agent with the current messages
 
-    response = await sql_agent.run(f"{state['messages']}")
+        response = await semantic_agent.run(f"{state['messages']}")
 
-    out = {"messages": response.output}
+        out = {"messages": response}
 
-    return out
-
-
-async def node_semantic_agent(state: State):
-    """
-    Node that calls the Semantic agent.
-    """
-    # Call the Semantic agent with the current messages
-
-    response = await semantic_agent.run(f"{state['messages']}")
-
-    out = {"messages": response.output}
-
-    return out
+        return out
 
 
-graph_builder.add_node("sql_agent", node_sqlagent)
-graph_builder.add_node("semantic_agent", node_semantic_agent)
+    graph_builder.add_node("sql_agent", node_sqlagent)
+    graph_builder.add_node("semantic_agent", node_semantic_agent)
 
-graph_builder.add_edge(START, "semantic_agent")
-graph_builder.add_edge(START, "sql_agent")
-graph_builder.add_edge("semantic_agent", "sql_agent")
-graph_builder.add_edge("sql_agent", END)
+    graph_builder.add_edge(START, "semantic_agent")
+    graph_builder.add_edge(START, "sql_agent")
+    graph_builder.add_edge("semantic_agent", "sql_agent")
+    graph_builder.add_edge("sql_agent", END)
 
-graph = graph_builder.compile()
+    graph = graph_builder.compile()
 
-print(graph.get_graph().draw_mermaid())
+    print(graph.get_graph().draw_mermaid())
+
+    return graph
+
 
 # model = ChatOpenAI(
 #     model=cfg.supervisor_agent.model_name,

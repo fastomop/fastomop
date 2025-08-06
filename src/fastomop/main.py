@@ -15,7 +15,9 @@ def run_a2a():
 
 async def run_graph():
     # This function is for running the orchestrator graph
-    from fastomop.agents.supervisor import graph
+    from fastomop.agents.supervisor import create_graph
+
+    graph = await create_graph()
 
     async def stream_graph_updates(user_input: str):
         async for event in graph.astream(
