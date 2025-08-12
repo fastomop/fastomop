@@ -220,6 +220,7 @@ agent_name = "SQL Agent"
 model_name = "gpt-oss:20b"
 openai_url = "http://localhost:11434/v1"
 description = "Agent for SQL query generation and execution"
+mcp_servers = ["sql_mcp"]
 needs_omop_schema = true
 system_prompt = """
 # OMOP SQL Agent System Prompt
@@ -347,6 +348,7 @@ Eg. T2DM to Type 2 Diabetes Mellitus. MS to Multiple Sclerosis, raised blood pre
 It will use the tools available to search the CONCEPT table in the OMOP database for these terms.
 """
 needs_omop_schema = true
+mcp_servers = ["sql_mcp"]
 system_prompt = """
 # OMOP Semantic Agent System Prompt
 
@@ -541,8 +543,8 @@ args = ["run", "fastomop_mcp_sql"]
 
 [omop]
 db_connection_string = "sqlite:///omop.db"
-clinical_tables_schema = "cdm"
-vocabulary_tables_schema = "vocab"
+clinical_tables_schema = "base"
+vocabulary_tables_schema = "base"
 allowed_tables = [
     "care_site",
     # "cdm_source",

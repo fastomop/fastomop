@@ -61,13 +61,13 @@ class AgentSettings(BaseModel):
     """Settings for the agent configuration."""
 
     agent_name: str = "Default Agent"
-    agent_type: Literal["pydantic", "llanggraph"] = "pydantic"
     model_name: str = "qwen3:14b"
     temperature: float = 0.1
     provider: ProviderConfig = Field(default_factory=lambda: create_ollama_config())
     description: str = "A helpful assistant for FastOMOP."
     needs_omop_schema: bool = False
     system_prompt: str = "You are a helpful assistant."
+    mcp_servers: list[str] = []
 
 class MCPServerSettings(BaseModel):
     """Settings for the MCP server."""

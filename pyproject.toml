@@ -28,7 +28,7 @@ classifiers = [
 ]
 
 
-authors = [{ name = "vvcb" }]
+authors = [{ name = "nikomoegre" }, { name = "vvcb" }]
 requires-python = ">=3.13"
 # Some of these dependencies are unnecessary and will be removed in the future.
 dependencies = [
@@ -61,6 +61,7 @@ dependencies = [
 [project.scripts]
 fastomop = "fastomop:main.main"
 fastomop_mcp_sql = "fastomop.mcp.sql.server:main"
+fastomop2 = "fastomop:main2.main"
 
 [project.optional-dependencies]
 
