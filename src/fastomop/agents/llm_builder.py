@@ -4,15 +4,13 @@ from pydantic_ai.providers.azure import AzureProvider
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.anthropic import AnthropicModel
-from langchain_openai import ChatOpenAI
-from langchain_anthropic import ChatAnthropic
 from typing import Any
 
 def create_provider(provider_config: ProviderConfig) -> Any:
     """Create an appropriate provider based on config.
 
     Args:
-    config: Provider configuration
+        config: Provider configuration
 
     Returns:
         Appropriate provider instance
@@ -65,31 +63,6 @@ def create_model(model_name: str, provider: Any, provider_config: ProviderConfig
             return AnthropicModel(
                 model_name=model_name,
                 provider=provider
-            )
-        case _:
-            raise ValueError(f"Unknown provider type: {provider_config.provider_type}")
-
-def create_langchain_llm(model_name: str, provider_config: ProviderConfig) -> Any:
-    """Create an appropriate langchain LLM based on provider type
-
-    Args:
-        model_name: Name of the model to create
-        provider_config: Provider configuration
-
-    Returns:
-        Appropriate langchain LLM instance
-    """
-    match provider_config.provider_type:
-        case "openai":
-            return ChatOpenAI(
-                model=model_name,
-                api_key=provider_config.api_key,
-                base_url=provider_config.base_url
-            )
-        case "anthropic":
-            return ChatAnthropic(
-                model_name=model_name,
-                api_key=provider_config.api_key
             )
         case _:
             raise ValueError(f"Unknown provider type: {provider_config.provider_type}")

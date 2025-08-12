@@ -15,8 +15,8 @@ class State(TypedDict):
 
 
 async def create_graph():
-    sql_agent = await create_agent(sql_agent_settings)
-    semantic_agent = await create_agent(semantic_agent_settings)
+    sql_agent = create_agent(sql_agent_settings)
+    semantic_agent = create_agent(semantic_agent_settings)
 
     graph_builder = StateGraph(State)
 
@@ -28,7 +28,8 @@ async def create_graph():
 
         response = await sql_agent.run(f"{state['messages']}")
 
-        out = {"messages": response}
+        # Convert AgentRunResult to a LangGraph-compatible message
+        out = {"messages": [{"role": "assistant", "content": response.output}]}
 
         return out
 
@@ -41,7 +42,8 @@ async def create_graph():
 
         response = await semantic_agent.run(f"{state['messages']}")
 
-        out = {"messages": response}
+        # Convert AgentRunResult to a LangGraph-compatible message
+        out = {"messages": [{"role": "assistant", "content": response.output}]}
 
         return out
 
