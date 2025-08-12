@@ -61,7 +61,6 @@ dependencies = [
 [project.scripts]
 fastomop = "fastomop:main.main"
 fastomop_mcp_sql = "fastomop.mcp.sql.server:main"
-fastomop2 = "fastomop:main2.main"
 
 [project.optional-dependencies]
 
