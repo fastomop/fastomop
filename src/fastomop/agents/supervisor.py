@@ -1,13 +1,11 @@
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
-from pydantic_ai import Agent
 from datetime import datetime
-
-
 from fastomop.config import config as cfg
 from fastomop.agents.agent_builder import create_agent
 from fastomop.agents.semantic_agent import settings as semantic_agent_settings
 from fastomop.agents.sql_agent import settings as sql_agent_settings
+
 
 @dataclass
 class AgentExecution:
@@ -25,7 +23,7 @@ class AgentExecution:
         self.output = output
         self.error = error
         self.end_time = datetime.now()
-        self.duration = (self.end_time - self.start_time).total_seconds()
+        self.duration = (self.end_time - self.start_time).total_seconds()  # type: ignore
 
 
 @dataclass
@@ -46,16 +44,21 @@ class QueryResult:
             "workflow_pattern": self.workflow_pattern,
             "success": self.success,
             "total_duration_ms": self.total_duration_ms,
-            "semantic_duration_ms": self.semantic_execution.duration if self.semantic_execution else None,
-            "sql_duration_ms": self.sql_execution.duration if self.sql_execution else None,
-            "synthesis_duration_ms": self.synthesis_execution.duration if self.synthesis_execution else None,
+            "semantic_duration_ms": self.semantic_execution.duration
+            if self.semantic_execution
+            else None,
+            "sql_duration_ms": self.sql_execution.duration
+            if self.sql_execution
+            else None,
+            "synthesis_duration_ms": self.synthesis_execution.duration
+            if self.synthesis_execution
+            else None,
             "final_answer": self.final_answer,
         }
 
 
 @dataclass
 class FastOmopSupervisor:
-
     def __init__(self):
         self.semantic_agent = create_agent(semantic_agent_settings)
         self.sql_agent = create_agent(sql_agent_settings)
@@ -80,7 +83,9 @@ class FastOmopSupervisor:
         Please generate a SQL query to answer the user query and execute it against the OMOP database in the MCP server.
         """
 
-    def build_synthesis_prompt(self, user_query: str, semantic_output: str, sql_output: str) -> str:
+    def build_synthesis_prompt(
+        self, user_query: str, semantic_output: str, sql_output: str
+    ) -> str:
         """Build a prompt for the synthesis agent."""
         return f"""
         User query: {user_query}
@@ -94,7 +99,6 @@ class FastOmopSupervisor:
        4. Provide a clear and concise answer to the user query.
         """
 
-
     async def process_query(self, user_query: str) -> QueryResult:
         """Process a query and return a QueryResult."""
 
@@ -102,7 +106,6 @@ class FastOmopSupervisor:
         start_time = datetime.now()
 
         try:
-
             # Semantic Agent
             semantic_prompt = self.build_semantic_prompt(user_query)
             result.semantic_execution = AgentExecution(
@@ -127,7 +130,9 @@ class FastOmopSupervisor:
             result.sql_execution.complete(output=sql_output.output)
 
             # Synthesis Agent
-            synthesis_prompt = self.build_synthesis_prompt(user_query, semantic_output.output, sql_output.output)
+            synthesis_prompt = self.build_synthesis_prompt(
+                user_query, semantic_output.output, sql_output.output
+            )
 
             result.synthesis_execution = AgentExecution(
                 agent_name="supervisor",
@@ -137,7 +142,7 @@ class FastOmopSupervisor:
             final_output = await self.supervisor_agent.run(synthesis_prompt)
             result.synthesis_execution.complete(output=final_output.output)
 
-            result.final_answer = final_output.output   
+            result.final_answer = final_output.output
             result.success = True
 
         except Exception as e:
@@ -154,12 +159,12 @@ class FastOmopSupervisor:
             result.final_answer = f"Error processing query: {str(e)}"
 
         finally:
-            result.total_duration_ms = (datetime.now() - start_time).total_seconds() * 1000
+            result.total_duration_ms = (
+                datetime.now() - start_time
+            ).total_seconds() * 1000
             self.history.append(result)
             return result
 
     def get_history(self) -> List[QueryResult]:
         """Get the history of queries."""
         return self.history
-            
-            

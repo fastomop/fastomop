@@ -5,7 +5,9 @@ from fastomop.config import config as cfg
 from fastomop.agents.llm_builder import create_provider, create_model
 
 
-def create_pydantic_agent(settings: AgentSettings, toolsets: list[MCPServerStdio]) -> Agent:
+def create_pydantic_agent(
+    settings: AgentSettings, toolsets: list[MCPServerStdio]
+) -> Agent:
     """Create an appropriate agent based on Agent settings
 
     Args:
@@ -18,10 +20,9 @@ def create_pydantic_agent(settings: AgentSettings, toolsets: list[MCPServerStdio
     Raises:
         ValueError: If agent type is not supported
     """
-    
+
     provider = create_provider(settings.provider)
     model = create_model(settings.model_name, provider, settings.provider)
-
 
     system_prompt = settings.system_prompt
     if settings.needs_omop_schema:
@@ -38,6 +39,6 @@ def create_pydantic_agent(settings: AgentSettings, toolsets: list[MCPServerStdio
         system_prompt=system_prompt,
         toolsets=toolsets or [],
         output_retries=3,
-        retries=5
+        retries=5,
     )
     return agent
