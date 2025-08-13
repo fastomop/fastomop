@@ -3,10 +3,10 @@ import os
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
-from fastomop.otel import tracer
 from .db import OmopDatabase
 
 connection_string = os.environ["DB_CONNECTION_STRING"]
+
 
 # # Default host and port values, can be overridden via environment variables
 # NotImplemented
@@ -25,7 +25,6 @@ db = OmopDatabase(
     name="Get_Information_Schema",
     description="Get the information schema of the OMOP database.",
 )
-@tracer.tool(name="MCP.Get_Information_Schema")
 def get_information_schema() -> CallToolResult:
     """Get the information schema of the OMOP database.
 
@@ -58,7 +57,6 @@ def get_information_schema() -> CallToolResult:
 @mcp.tool(
     name="Select_Query", description="Execute a select query against the OMOP database."
 )
-@tracer.tool(name="MCP.Select_Query")
 def read_query(query: str) -> CallToolResult:
     """Run a SQL query against the OMOP database.
 

@@ -241,6 +241,15 @@ wheels = [
 ]
 
 [[package]]
+name = "backoff"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/d7/5bbeb12c44d7c4f2fb5b56abce497eb5ed9f34d85701de869acedd602619/backoff-2.2.1.tar.gz", hash = "sha256:03f829f5bb1923180821643f8753b0502c3b682293992485b0eef2807afa5cba", size = 17001, upload-time = "2022-10-05T19:19:32.061Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/73/b6e24bd22e6720ca8ee9a85a0c4a2971af8497d8f3193fa05390cbd46e09/backoff-2.2.1-py3-none-any.whl", hash = "sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8", size = 15148, upload-time = "2022-10-05T19:19:30.546Z" },
+]
+
+[[package]]
 name = "backrefs"
 version = "5.9"
 source = { registry = "https://pypi.org/simple" }
@@ -618,6 +627,7 @@ dependencies = [
     { name = "langchain-anthropic" },
     { name = "langchain-mcp-adapters" },
     { name = "langchain-openai" },
+    { name = "langfuse" },
     { name = "langgraph" },
     { name = "langgraph-supervisor" },
     { name = "langsmith" },
@@ -667,6 +677,7 @@ requires-dist = [
     { name = "langchain-anthropic" },
     { name = "langchain-mcp-adapters" },
     { name = "langchain-openai", specifier = ">=0.3.28" },
+    { name = "langfuse", specifier = ">=3.2.4" },
     { name = "langgraph", specifier = ">=0.5.4" },
     { name = "langgraph-supervisor", specifier = ">=0.0.28" },
     { name = "langsmith", specifier = ">=0.4.8" },
@@ -1247,6 +1258,26 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/91/52/d43ad77acae169210cc476cbc1e4ab37a701017c950211a11ab500fe7d7e/langchain_text_splitters-0.3.9.tar.gz", hash = "sha256:7cd1e5a3aaf609979583eeca2eb34177622570b8fa8f586a605c6b1c34e7ebdb", size = 45260, upload-time = "2025-07-24T14:38:45.14Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e2/52/7638394b88bc15083fd2c3752a843784d9d2d110d68fed6437c8607fb749/langchain_text_splitters-0.3.9-py3-none-any.whl", hash = "sha256:cee0bb816211584ea79cc79927317c358543f40404bcfdd69e69ba3ccde54401", size = 33314, upload-time = "2025-07-24T14:38:43.953Z" },
+]
+
+[[package]]
+name = "langfuse"
+version = "3.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "backoff" },
+    { name = "httpx" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-exporter-otlp" },
+    { name = "opentelemetry-sdk" },
+    { name = "packaging" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "wrapt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/16/ed/14bdfcedb34c817d1b1cb1420a6253eb8d1e7baa99c8077f82d1b2f4ee12/langfuse-3.2.4.tar.gz", hash = "sha256:4066ade6cff682dc727679a8bd70feaba316c92bb91bc971d0a504cb42e7cf3d", size = 153387, upload-time = "2025-08-12T12:44:47.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4b/bf/cd7491a2ed33b4a6848487af4e60cdcef3ff132a993be68941de09642163/langfuse-3.2.4-py3-none-any.whl", hash = "sha256:4e65e856e4784939ac8d3e512d73aeb95472848b67a856c46a8301de48b97744", size = 299967, upload-time = "2025-08-12T12:44:45.943Z" },
 ]
 
 [[package]]
