@@ -6,6 +6,7 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.models.anthropic import AnthropicModel
 from typing import Any
 
+
 def create_provider(provider_config: ProviderConfig) -> Any:
     """Create an appropriate provider based on config.
 
@@ -22,23 +23,23 @@ def create_provider(provider_config: ProviderConfig) -> Any:
     match provider_config.provider_type:
         case "openai":
             return OpenAIProvider(
-                api_key=provider_config.api_key,
-                base_url=provider_config.base_url
+                api_key=provider_config.api_key, base_url=provider_config.base_url
             )
         case "azure":
             return AzureProvider(
                 api_key=provider_config.api_key,
                 azure_endpoint=provider_config.azure_endpoint,
-                api_version=provider_config.api_version
+                api_version=provider_config.api_version,
             )
         case "anthropic":
-            return AnthropicProvider(
-                api_key=provider_config.api_key
-            )
+            return AnthropicProvider(api_key=provider_config.api_key)
         case _:
             raise ValueError(f"Unknown provider type: {provider_config.provider_type}")
 
-def create_model(model_name: str, provider: Any, provider_config: ProviderConfig) -> Any:
+
+def create_model(
+    model_name: str, provider: Any, provider_config: ProviderConfig
+) -> Any:
     """Create an appropriate model based on proider type
 
     Args:
@@ -56,13 +57,10 @@ def create_model(model_name: str, provider: Any, provider_config: ProviderConfig
     match provider_config.provider_type:
         case "openai" | "azure":
             return OpenAIModel(
-                model_name=model_name, #Azure OpenAI needs to be specified with deployment name
-                provider=provider
+                model_name=model_name,  # Azure OpenAI needs to be specified with deployment name
+                provider=provider,
             )
         case "anthropic":
-            return AnthropicModel(
-                model_name=model_name,
-                provider=provider
-            )
+            return AnthropicModel(model_name=model_name, provider=provider)
         case _:
             raise ValueError(f"Unknown provider type: {provider_config.provider_type}")

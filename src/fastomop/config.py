@@ -32,12 +32,14 @@ class OpenAIConfig(BaseModel):
     base_url: str = "https://api.openai.com/v1"
     organization: Optional[str] = None
 
+
 class AnthropicConfig(BaseModel):
     """Settings for Anthropic."""
 
     provider_type: Literal["anthropic"] = "anthropic"
     api_key: Optional[str] = None
     base_url: str = "https://api.anthropic.com/v1"
+
 
 class AzureConfig(BaseModel):
     """Settings for Azure."""
@@ -47,6 +49,7 @@ class AzureConfig(BaseModel):
     azure_endpoint: str
     api_version: str = "2024-02-15-preview"
 
+
 def create_ollama_config() -> OpenAIConfig:
     """Create an Ollama config."""
     return OpenAIConfig(
@@ -55,7 +58,9 @@ def create_ollama_config() -> OpenAIConfig:
         api_key="ollama",
     )
 
+
 ProviderConfig = Union[OpenAIConfig, AzureConfig, AnthropicConfig]
+
 
 class AgentSettings(BaseModel):
     """Settings for the agent configuration."""
@@ -69,21 +74,21 @@ class AgentSettings(BaseModel):
     system_prompt: str = "You are a helpful assistant."
     mcp_servers: list[str] = []
 
+
 class MCPServerSettings(BaseModel):
     """Settings for the MCP server."""
+
     name: str = "sql_mcp_server"
     command: str = "uv"
     args: list[str] = ["run", "fastomop_mcp_sql"]
 
-class TracerSettings(BaseModel):
-    """Settings for the OpenTelemetry tracer."""
 
-    project_name: str = "fastomop"
-    endpoint: str = os.getenv(
-        "PHOENIX_COLLECTOR_ENDPOINT", "http://localhost:6006/v1/traces"
-    )
-    auto_instrument: bool = True
-    batch: bool = False  # Use batch processing for better performance
+class TracerSettings(BaseModel):
+    """Settings for the Langfuse OpenTelemetry tracer."""
+
+    public_key: str = os.environ["LANGFUSE_PUBLIC_KEY"]
+    secret_key: str = os.environ["LANGFUSE_SECRET_KEY"]
+    host: str = os.environ["LANGFUSE_HOST"]
 
 
 class OMOPSettings(BaseModel):
