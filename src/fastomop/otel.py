@@ -1,20 +1,19 @@
 """Settings for the FastOMOP OpenTelemetry integration."""
 
-# This currently uses Arize Phoenix OpenTelemetry for FastOMOP.
+# This currently uses Langfuse OpenTelemetry for FastOMOP.
 
-from phoenix.otel import register
+from langfuse import Langfuse
 from fastomop.config import config as cfg
-import fastomop
 
-
-tracer_provider = register(
-    project_name=cfg.tracer.project_name,
-    auto_instrument=cfg.tracer.auto_instrument,  # Automatically trace all calls made to a library
-    endpoint=cfg.tracer.endpoint,
-    batch=cfg.tracer.batch,  # Use batch processing for better performance
+tracer = Langfuse(
+    public_key=cfg.tracer.public_key,
+    secret_key=cfg.tracer.secret_key,
+    host=cfg.tracer.host,
 )
 
-tracer = tracer_provider.get_tracer(
-    instrumenting_module_name=fastomop.__name__,
-    instrumenting_library_version=fastomop.__version__,
-)
+
+# Verify connection
+if tracer.auth_check():
+    print("Langfuse client is authenticated and ready!")
+else:
+    print("Authentication failed. Please check your credentials and host.")
