@@ -3,6 +3,7 @@
 # This currently uses Langfuse OpenTelemetry for FastOMOP.
 
 from langfuse import Langfuse
+
 from fastomop.config import config as cfg
 
 tracer = Langfuse(

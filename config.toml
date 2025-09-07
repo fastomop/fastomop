@@ -6,7 +6,7 @@
 # Add other configuration settings here as needed
 [supervisor_agent]
 agent_name = "Supervisor Agent"
-model_name = "gpt-oss:20b"
+model_name = "qwen3:14b"
 openai_url = "http://localhost:11434/v1"
 description = "Supervisor and coordinator agent for FastOMOP"
 system_prompt = """
@@ -214,10 +214,22 @@ Results Synthesis → Response
 
 Remember: You are the intelligent coordinator that transforms user questions into actionable clinical insights through strategic orchestration of specialized capabilities. Your expertise lies not just in technical execution, but in understanding the clinical significance and research implications of the data analysis workflow.
 """
+user_prompt = """
+User query: {{user_query}}
+Semantic meaning: {{semantic_output}}
+Database results: {{sql_output}}
+
+Tasks:
+1. Synthesize a comprehensive answer to the user query based on the semantic meaning and the database results.
+2. Validate medical accuracy and clinical relevance of the answer.
+3. Flag potential limitations, data quality issues, or uncertainties in the answer.
+4. Provide a clear and concise answer to the user query.
+"""
+
 
 [sql_agent]
 agent_name = "SQL Agent"
-model_name = "gpt-oss:20b"
+model_name = "qwen3:14b"
 openai_url = "http://localhost:11434/v1"
 description = "Agent for SQL query generation and execution"
 mcp_servers = ["sql_mcp"]
@@ -334,11 +346,20 @@ LIMIT 1000;
 ```
 
 Remember: Your goal is to make OMOP CDM data accessible through natural language while maintaining the highest standards of data safety and query performance.
+
+Prefix all clinical tables with the schema name `{{clinical_tables_schema}}` and vocabulary tables with `{{vocabulary_tables_schema}}`.
+Clinical tables: {{clinical_tables}}
+Vocabulary tables: {{vocabulary_tables}}
+"""
+user_prompt = """
+Given this user query: {{user_query}}
+and the semantic meaning of the query: {{semantic_output}}
+Please generate a SQL query to answer the user query and execute it against the OMOP database in the MCP server.
 """
 
 [semantic_agent]
 agent_name = "Semantic Agent"
-model_name = "gpt-oss:20b"
+model_name = "qwen3:14b"
 openai_url = "http://localhost:11434/v1"
 description = """
 Agent for semantic search and information retrieval.
@@ -528,8 +549,16 @@ When processing multiple terms:
 
 Remember: Your goal is to bridge the gap between natural clinical language and standardized OMOP vocabularies, ensuring that downstream analytical processes can leverage properly mapped, clinically meaningful concepts.
 
-/no_think
+Prefix all clinical tables with the schema name `{{clinical_tables_schema}}` and vocabulary tables with `{{vocabulary_tables_schema}}`.
+Clinical tables: {{clinical_tables}}
+Vocabulary tables: {{vocabulary_tables}}
 """
+user_prompt = """
+Given this user query: {{user_query}}
+Extract the semantic meaning of the query and return it in a structured format.
+The semantic meaning should be a list of OMOP vocabulary entities and their relationships.
+"""
+
 [tracer]
 # Deprecated. Use .env file or environment variables instead.
 project_name = "fastomop"
