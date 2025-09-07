@@ -1,10 +1,12 @@
-from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastomop.agents.agent_factory import create_agent
+from fastomop.agents.semantic_agent import agent as semantic_agent
+from fastomop.agents.sql_agent import agent as sql_agent
 from fastomop.config import config as cfg
-from fastomop.agents.agent_builder import create_agent
-from fastomop.agents.semantic_agent import settings as semantic_agent_settings
-from fastomop.agents.sql_agent import settings as sql_agent_settings
+from fastomop.otel import tracer
 
 
 @dataclass
@@ -57,23 +59,13 @@ class QueryResult:
         }
 
 
-@dataclass
 class FastOmopSupervisor:
     def __init__(self):
-        self.semantic_agent = create_agent(semantic_agent_settings)
-        self.sql_agent = create_agent(sql_agent_settings)
+        self.semantic_agent = semantic_agent
+        self.sql_agent = sql_agent
         self.supervisor_agent = create_agent(cfg.supervisor_agent)
 
         self.history: List[QueryResult] = []
-
-    def build_semantic_prompt(self, user_query: str) -> str:
-        """Build a prompt for the semantic agent."""
-        return f"""
-        Given this user query: {user_query}
-        Please extract the semantic meaning of the query.
-        Return the semantic meaning in a structured format.
-        The semantic meaning should be a list of OMOP vocabulary entities and their relationships.
-        """
 
     def build_sql_prompt(self, user_query: str, semantic_output: str) -> str:
         """Build a prompt for the SQL agent."""
@@ -107,7 +99,12 @@ class FastOmopSupervisor:
 
         try:
             # Semantic Agent
-            semantic_prompt = self.build_semantic_prompt(user_query)
+            # semantic_prompt = self.build_semantic_prompt(user_query)
+            semantic_prompt_client = tracer.get_prompt(
+                "semantic_agent.user_prompt", label="latest"
+            )
+            semantic_prompt = semantic_prompt_client.compile(user_query=user_query)
+
             result.semantic_execution = AgentExecution(
                 agent_name="semantic",
                 input=semantic_prompt,
