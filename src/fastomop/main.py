@@ -1,10 +1,12 @@
 """Main entry point for FastOMOP application."""
 
 import asyncio
-from fastomop.otel import tracer
-from fastomop.agents.supervisor import FastOmopSupervisor
-from rich.console import Console
+
 from langfuse import observe
+from rich.console import Console
+
+from fastomop.agents.supervisor import FastOmopSupervisor
+from fastomop.otel import tracer
 
 console = Console()
 

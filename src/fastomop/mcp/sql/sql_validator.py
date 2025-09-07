@@ -2,12 +2,15 @@
 This module provides functionality to validate SQL queries using SQLGlot
 """
 
+import typing as t
+
 import sqlglot as sg
 import sqlglot.expressions as exp
-import typing as t
-from . import exceptions as ex
 from sqlglot.optimizer.scope import build_scope
+
 from fastomop.config import config as cfg
+
+from . import exceptions as ex
 
 OMOP_TABLES = (
     cfg.omop.clinical_tables + cfg.omop.vocabulary_tables + cfg.omop.metadata_tables

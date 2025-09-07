@@ -2,10 +2,10 @@
 
 import os
 from pathlib import Path
+from typing import Literal, Optional, Union
 
 from dotenv import find_dotenv
 from pydantic import BaseModel, Field
-from typing import Literal, Optional, Union
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -72,6 +72,7 @@ class AgentSettings(BaseModel):
     description: str = "A helpful assistant for FastOMOP."
     needs_omop_schema: bool = False
     system_prompt: str = "You are a helpful assistant."
+    user_prompt: str = "How can I assist you today?"
     mcp_servers: list[str] = []
 
 

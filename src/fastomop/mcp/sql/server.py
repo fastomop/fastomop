@@ -1,8 +1,8 @@
 import os
 
-
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
+
 from .db import OmopDatabase
 
 connection_string = os.environ["DB_CONNECTION_STRING"]
