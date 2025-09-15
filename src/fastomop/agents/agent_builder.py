@@ -4,6 +4,7 @@ from pydantic_ai import Agent
 from pydantic_ai.mcp import MCPServerStdio
 from fastomop.agents.pydantic_factory import create_pydantic_agent
 from fastomop.config import config as cfg
+from fastomop.capture_mcp_wrapper import CapturingMCPServerStdio
 
 def create_agent(settings: AgentSettings) -> Agent:
     """Create an appropriate agent based on Agent settings
@@ -19,9 +20,10 @@ def create_agent(settings: AgentSettings) -> Agent:
             None
             )
             if server_config:
-                mcp_server = MCPServerStdio(command=server_config.command, args=server_config.args)
+                # Use capturing wrapper instead of direct MCPServerStdio
+                mcp_server = CapturingMCPServerStdio(command=server_config.command, args=server_config.args)
                 toolsets.append(mcp_server)
-                print(f"Added MCP server: {server_name}")
+                print(f"Added capturing MCP server: {server_name}")
             else:
                 print(f"MCP server not found: {server_name}")
 

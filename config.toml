@@ -532,8 +532,8 @@ Remember: Your goal is to bridge the gap between natural clinical language and s
 """
 [tracer]
 project_name = "fastomop"
-endpoint = "http://localhost:6006/v1/traces"
-auto_instrument = true
+# endpoint = "http://localhost:6006/v1/traces"  # Temporarily disabled for testing
+auto_instrument = false  # Disable to avoid conflicts with MCP instrumentation
 batch = false
 
 [[mcp_servers]]
@@ -542,7 +542,7 @@ command = "uv"
 args = ["run", "fastomop_mcp_sql"]
 
 [omop]
-db_connection_string = "sqlite:///omop.db"
+db_connection_string = "duckdb:///Users/k24118093/Documents/omcp_server/synthetic_data/synthea.duckdb"
 clinical_tables_schema = "base"
 vocabulary_tables_schema = "base"
 allowed_tables = [
