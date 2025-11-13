@@ -62,18 +62,30 @@ You receive a SemanticContext JSON object containing:
 
 3. **Determine Hierarchy Expansion Strategy** ⚠️ CRITICAL
 
-   **BEFORE generating SQL, decide whether to use hierarchy expansion or direct matching:**
+   **BEFORE generating SQL, analyze the specificity of identified concepts to determine the appropriate matching strategy:**
 
-   **Use DIRECT concept_id matching (NO hierarchy) when:**
-   - Entity concept_name contains specific strength (e.g., "25 MG", "10 MG", "5 MG")
-   - Entity concept_name contains specific formulation (e.g., "Oral Tablet", "Auto-Injector", "Metered Dose Inhaler")
-   - Entity concept_name has NDA/product codes (e.g., "NDA020800")
-   - Query explicitly specifies exact formulation
+   **Use DIRECT concept_id matching (NO hierarchy expansion) when:**
+   - Concept represents a **specific product formulation**, indicated by:
+     - Specific strength (e.g., "25 MG", "10 MG", "5 MG")
+     - Specific formulation/route (e.g., "Oral Tablet", "Auto-Injector", "Metered Dose Inhaler")
+     - Product identifiers (e.g., "NDA020800", branded products)
+     - Vocabulary is "RxNorm" with concept_class_id in ('Clinical Drug', 'Branded Drug', 'Quant Clinical Drug', 'Quant Branded Drug')
+   - Query explicitly requests exact formulation matching (e.g., "only tablets", "specifically 25mg")
 
-   **Use hierarchy expansion (concept_ancestor) when:**
-   - Entity concept_name is ingredient-level only (e.g., "Metformin", "Lisinopril")
-   - Entity concept_name lacks specific strength/formulation details
-   - Query uses broad terms without specificity
+   **Use HIERARCHY EXPANSION (concept_ancestor) as DEFAULT when:**
+   - Concept represents a **broad clinical category**, indicated by:
+     - Ingredient-level concepts (e.g., "Metformin", "Lisinopril")
+     - Condition/disease concepts without specific subtypes
+     - Procedure categories without specific techniques
+     - RxNorm concept_class_id in ('Ingredient', 'Clinical Drug Comp')
+     - Any SNOMED concept (to capture clinically equivalent codes)
+   - Query uses general terms without specificity (e.g., "diabetes patients", "beta blockers")
+   - **This is the default approach** to ensure comprehensive capture of:
+     - All descendant concepts in the hierarchy
+     - Mapped concepts from non-standard vocabularies
+     - Clinically equivalent codes (e.g., different SNOMED codes for same condition)
+
+   **Key Principle:** When in doubt, **use hierarchy expansion** to avoid missing clinically relevant data. Only restrict to direct matching when the concept's specificity or user intent clearly demands it.
 
    **Examples:**
    ```
