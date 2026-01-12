@@ -10,53 +10,51 @@ class ConceptMapping(BaseModel):
                          "Procedure", "Measurement", "Gender",
                          "Race", "Ethnicity", "Visit"]] = None
     concept_id: Optional[int] = None
+    entity_order: Optional[int] = None  # NEW: Order of entity in query (1, 2, 3)
 
-    # NEW: Intelligent concept selection fields
+    # Intelligent concept selection fields
     selection_reasoning: Optional[str] = None  # Explanation of why this concept was chosen
     alternative_concepts_considered: Optional[List[int]] = None  # Other concept IDs evaluated
     estimated_patient_count: Optional[int] = None  # Patient count from database usage check
 
 class TemporalConstraint(BaseModel):
-    """Flexible temporal constraint - structure varies by query type.
+    """Temporal constraint following new semantic agent output format.
 
-    Common patterns:
-    - Relative window: {window_days: int, constraint_type: "within"|"before"|"after"}
-    - Specific year: {year: int, constraint_type: str}
-    - Date range: {start_date: str, end_date: str}
-    - Grouping: {group_by: str}
-    - Any other semantic representation the LLM finds appropriate
-
-    The database agent is responsible for interpreting these fields and generating appropriate SQL.
+    Types:
+    - within: Symmetric time window (e.g., "within 30 days")
+    - after: Directional "followed by" with no specific days
+    - days_after: Directional with specific day count (e.g., "more than 30 days after")
+    - before: Directional before
+    - in_year: Year filter (e.g., "in year 2145")
     """
 
-    # Common fields (all optional to support different patterns)
-    window_days: Optional[int] = None
-    constraint_type: Optional[str] = None
-    year: Optional[int] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    group_by: Optional[str] = None
+    type: Literal["within", "after", "days_after", "before", "in_year"]
+    value: Optional[int] = None  # Number of days or year value
+    unit: Optional[Literal["days", "year"]] = None
+    direction: Optional[Literal["symmetric", "first_to_second", "second_to_first"]] = None
 
     class Config:
         extra = "allow"  # Accept novel fields from LLM
 
 
 class AdditionalFilters(BaseModel):
-    """Additional filters for query context.
-
-    For follow-up queries like "How many of these have diabetes?", is_followup signals
-    that the database agent should look at conversation history to find the previous
-    cohort filtering logic and SQL query.
-    """
-    # Signal for follow-up queries - tells DB agent to look at conversation history
-    is_followup: Optional[bool] = False
+    """Additional filters for query context (demographics, grouping, etc.)"""
 
     # Demographics filters
-    gender: Optional[str] = None
     age: Optional[int] = None  # Exact age constraint (e.g., "at age 18")
+    gender: Optional[str] = None
+    race: Optional[str] = None
+    ethnicity: Optional[str] = None
+    state: Optional[str] = None
+    year: Optional[int] = None
+
+    # Grouping
+    group_by: Optional[List[str]] = None  # List of fields to group by
+
+    # Follow-up query support (legacy)
+    is_followup: Optional[bool] = False
     age_min: Optional[int] = None
     age_max: Optional[int] = None
-    race: Optional[str] = None
 
     class Config:
         extra = "allow"  # Accept novel fields from LLM
@@ -64,12 +62,15 @@ class AdditionalFilters(BaseModel):
 
 class SemanticContext(BaseModel):
     user_query: str
-    query_intent: str  # Allow any query type (e.g., "demographics", "distribution", "cohort_analysis", etc.)
-    query_type: Optional[Literal["single", "intersection", "multi_intersection", "union", "demographics"]] = "single"
+    query_intent: str  # Brief description of query purpose
+    query_category: str  # CRITICAL: Category name (e.g., "DRUG_AND", "CONDITION_FOLLOWED_BY", etc.)
 
     entities: Optional[List[ConceptMapping]] = []  # Empty for demographics queries
     temporal_constraint: Optional[TemporalConstraint] = None
     additional_filters: Optional[AdditionalFilters] = None
+
+    # Legacy field for backwards compatibility
+    query_type: Optional[Literal["single", "intersection", "multi_intersection", "union", "demographics"]] = None
 
 class QueryResult(BaseModel):
     sql: str

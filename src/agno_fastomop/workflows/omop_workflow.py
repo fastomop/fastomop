@@ -38,19 +38,102 @@ async def initialize_workflow(batch_mode=False):
         # Create ONE MCP connection (shared by both agents to avoid DuckDB lock)
         # Pass Langfuse credentials to OMCP subprocess for trace propagation
         omcp_config = config["omcp"]
+        
+        # Build environment variables for OMCP server
+        # OMCP server requires DB_TYPE and DB_PATH (for DuckDB) or DB_TYPE and PostgreSQL connection vars
+        db_path = os.getenv("DB_PATH", "")
+        db_type = os.getenv("DB_TYPE", "")
+        
+        # Auto-detect DB_TYPE from DB_PATH if not explicitly set
+        if not db_type and db_path:
+            if db_path.startswith("postgresql://") or db_path.startswith("postgres://"):
+                db_type = "postgres"
+            else:
+                db_type = "duckdb"  # Default to duckdb for file paths
+        elif not db_type:
+            db_type = "duckdb"  # Default to duckdb if nothing is set
+        
+        omcp_env = {
+            "DB_TYPE": db_type,
+            "DB_PATH": db_path,
+            "LANGFUSE_PUBLIC_KEY": os.getenv("LANGFUSE_PUBLIC_KEY", ""),
+            "LANGFUSE_SECRET_KEY": os.getenv("LANGFUSE_SECRET_KEY", ""),
+            "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+        }
+        
+        # If using PostgreSQL, parse connection string or use individual env vars
+        # OMCP server expects: DB_USERNAME, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE
+        # Note: DB_PASSWORD can be empty (some PostgreSQL users don't have passwords)
+        if db_type == "postgres" or db_type == "postgresql":
+            # Check if individual env vars are set (password can be empty, but others should be set)
+            has_individual_vars = all(
+                os.getenv(key) is not None and os.getenv(key).lower() not in ["none"]
+                for key in ["DB_USERNAME", "DB_HOST", "DB_PORT", "DB_DATABASE"]
+            )
+            
+            if has_individual_vars:
+                # Use individual environment variables
+                # Password is optional (can be empty string)
+                for key in ["DB_USERNAME", "DB_HOST", "DB_PORT", "DB_DATABASE"]:
+                    value = os.getenv(key, "")
+                    if value and value.lower() not in ["none"]:
+                        omcp_env[key] = value
+                # Handle password separately (can be empty)
+                db_password = os.getenv("DB_PASSWORD", "")
+                if db_password is not None and db_password.lower() not in ["none"]:
+                    omcp_env["DB_PASSWORD"] = db_password
+                else:
+                    omcp_env["DB_PASSWORD"] = ""  # Empty password is valid
+            elif db_path and (db_path.startswith("postgresql://") or db_path.startswith("postgres://")):
+                # Try to parse connection string from DB_PATH
+                try:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(db_path)
+                    # Extract values from connection string
+                    omcp_env["DB_USERNAME"] = parsed.username or ""
+                    # Password can be None (no password) or empty string
+                    omcp_env["DB_PASSWORD"] = parsed.password if parsed.password is not None else ""
+                    omcp_env["DB_HOST"] = parsed.hostname or "localhost"
+                    omcp_env["DB_PORT"] = str(parsed.port) if parsed.port else "5432"
+                    omcp_env["DB_DATABASE"] = parsed.path.lstrip("/") if parsed.path else ""
+                except Exception as e:
+                    print(f"Warning: Could not parse PostgreSQL connection string from DB_PATH: {e}")
+                    print("Please set DB_USERNAME, DB_PASSWORD, DB_HOST, DB_PORT, and DB_DATABASE individually")
+            else:
+                # Use individual environment variables if provided
+                for key in ["DB_USERNAME", "DB_HOST", "DB_PORT", "DB_DATABASE"]:
+                    value = os.getenv(key, "")
+                    if value and value.lower() not in ["none"]:
+                        omcp_env[key] = value
+                # Handle password separately (can be empty)
+                db_password = os.getenv("DB_PASSWORD", "")
+                if db_password is not None and db_password.lower() not in ["none"]:
+                    omcp_env["DB_PASSWORD"] = db_password
+                else:
+                    omcp_env["DB_PASSWORD"] = ""  # Empty password is valid
+        
+        # For large databases (700GB+), connection initialization and queries can take longer
+        # Default to 660 seconds (11 minutes) to allow for 10-minute query timeout + 1 minute buffer
+        mcp_timeout = int(os.getenv("MCP_CONNECTION_TIMEOUT", "660"))
+        print(f"Connecting to OMCP server (timeout: {mcp_timeout}s)...")
+        print("Note: Large databases (700GB+) may take longer to initialize and execute complex queries.")
+        
         _mcp_tools = MCPTools(
             transport=omcp_config["transport"],
             command=omcp_config["command"],
-            env={
-                "DB_PATH": os.getenv("DB_PATH", ""),
-                "LANGFUSE_PUBLIC_KEY": os.getenv("LANGFUSE_PUBLIC_KEY", ""),
-                "LANGFUSE_SECRET_KEY": os.getenv("LANGFUSE_SECRET_KEY", ""),
-                "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
-            }
+            env=omcp_env,
+            timeout_seconds=mcp_timeout  # Pass timeout to MCPTools
         )
 
         # Manually connect MCP once
-        await _mcp_tools._connect()
+        try:
+            await _mcp_tools._connect()
+            print("✓ OMCP server connected successfully")
+        except Exception as e:
+            print(f"⚠️  MCP connection failed: {e}")
+            print(f"If timeout occurred, try increasing MCP_CONNECTION_TIMEOUT (current: {mcp_timeout}s)")
+            print("For very large databases, try: export MCP_CONNECTION_TIMEOUT=600  # 10 minutes")
+            raise
 
         # Create shared database for conversation history and memory
         db = SqliteDb(db_file="db_agent.db")
@@ -157,6 +240,76 @@ def extract_final_query_from_step(step_response) -> str:
     return final_query
 
 
+def extract_raw_result(workflow_response) -> str:
+    """
+    Extract the raw CSV result from the final successful SQL query execution.
+
+    Args:
+        workflow_response: The workflow RunOutput containing execution history
+
+    Returns:
+        str: The raw CSV result from MCP server, or None if not found
+    """
+    raw_result = None
+
+    try:
+        # Check step_executor_runs for tool results
+        if hasattr(workflow_response, 'step_executor_runs') and workflow_response.step_executor_runs:
+            # Iterate through step executor runs in reverse (most recent first)
+            for step_run in reversed(workflow_response.step_executor_runs):
+                if hasattr(step_run, 'tools') and step_run.tools:
+                    # Look through tools in reverse order (last tool call first)
+                    for tool in reversed(step_run.tools):
+                        # Check if this is a Select_Query tool
+                        tool_name = getattr(tool, 'tool_name', None)
+                        if tool_name == 'Select_Query':
+                            # Check if it succeeded (isError == False)
+                            result = getattr(tool, 'result', None)
+                            if result:
+                                is_error = False
+                                # Check for isError in result
+                                if hasattr(result, 'isError'):
+                                    is_error = result.isError
+                                elif isinstance(result, dict) and 'isError' in result:
+                                    is_error = result['isError']
+
+                                if not is_error:
+                                    # Extract raw CSV content from MCP CallToolResult
+                                    # Structure: result.content = [TextContent(type="text", text="<CSV>")]
+                                    if hasattr(result, 'content') and result.content:
+                                        content_list = result.content
+                                        if isinstance(content_list, list) and len(content_list) > 0:
+                                            # Get first TextContent item
+                                            text_content = content_list[0]
+                                            if hasattr(text_content, 'text'):
+                                                raw_result = text_content.text
+                                                break
+                                            elif isinstance(text_content, dict) and 'text' in text_content:
+                                                raw_result = text_content['text']
+                                                break
+                                    elif isinstance(result, dict) and 'content' in result:
+                                        content_list = result['content']
+                                        if isinstance(content_list, list) and len(content_list) > 0:
+                                            text_content = content_list[0]
+                                            if isinstance(text_content, dict) and 'text' in text_content:
+                                                raw_result = text_content['text']
+                                                break
+                                    elif isinstance(result, str):
+                                        # Fallback: result is directly a string
+                                        raw_result = result
+                                        break
+
+                if raw_result:
+                    break
+
+    except Exception as e:
+        import traceback
+        print(f"Warning: Could not extract raw result: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+
+    return raw_result
+
+
 def extract_final_query(workflow_response) -> str:
     """
     Extract the final successful query from tool execution history.
@@ -253,13 +406,17 @@ async def run_omop_query(user_query: str, session_id: str = None, user_id: str =
     workflow = await initialize_workflow(batch_mode=batch_mode)
     response = await workflow.arun(user_query, session_id=session_id, user_id=user_id)
 
-    # Extract final successful query from tool execution history
+    # Extract final successful query and raw CSV result from tool execution history
     try:
         final_query = extract_final_query(response)
+        raw_result = extract_raw_result(response)
 
-        if final_query:
-            # Add final_query to Langfuse trace output (V3 API)
-            # Preserve existing output and add final_query field
+        # Attach as custom attributes to response for easy access in run_agent.py
+        response.sql_query = final_query
+        response.raw_csv_result = raw_result
+
+        if final_query or raw_result:
+            # Add to Langfuse trace output (V3 API)
             langfuse = get_client()
 
             # Get existing output from response
@@ -269,18 +426,21 @@ async def run_omop_query(user_query: str, session_id: str = None, user_id: str =
             elif hasattr(response, '__dict__'):
                 existing_output = {k: v for k, v in response.__dict__.items() if not k.startswith('_')}
 
-            # Add final_query to existing output
-            existing_output['final_query'] = final_query
+            # Add SQL query and raw result to existing output
+            if final_query:
+                existing_output['sql_query'] = final_query
+            if raw_result:
+                existing_output['raw_csv_result'] = raw_result
 
             langfuse.update_current_trace(
                 output=existing_output
             )
         else:
-            print("WARNING: No final query found in response")
+            print("WARNING: No SQL query or raw result found in response")
 
     except Exception as e:
         import traceback
-        print(f"ERROR: Could not update trace with final query: {e}")
+        print(f"ERROR: Could not update trace with query metadata: {e}")
         print(f"ERROR traceback: {traceback.format_exc()}")
 
     return response

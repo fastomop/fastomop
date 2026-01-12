@@ -47,7 +47,33 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_HOST=https://cloud.langfuse.com
 
 # OMOP Database (required)
-DB_PATH=/path/to/omop.duckdb #or see OMCP docu for set-up of postgresql/ general db set-up
+# Option 1: DuckDB (default)
+DB_PATH=/path/to/omop.duckdb
+
+# Option 2: PostgreSQL
+# Set DB_TYPE explicitly or it will be auto-detected from DB_PATH
+DB_TYPE=postgres
+DB_PATH=postgresql://username:password@host:port/database
+# For users without passwords, omit the password part:
+# DB_PATH=postgresql://username@host:port/database
+
+# OR use individual variables:
+# DB_TYPE=postgres
+# DB_USERNAME=username
+# DB_PASSWORD=password  # Can be empty if user has no password
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_DATABASE=omop_database
+
+# Note: If using PostgreSQL, the OMCP server needs ibis-framework[postgres].
+# You can install it in the OMCP server's environment:
+#   cd /path/to/omcp_server
+#   uv pip install "ibis-framework[postgres]"
+# Or install it as an optional dependency in this project:
+#   uv sync --extra postgres
+
+# For very large databases (700GB+), increase the MCP connection timeout:
+# MCP_CONNECTION_TIMEOUT=300  # 5 minutes (default is 120 seconds)
 ```
 
 Add credentials for your chosen LLM provider:
@@ -180,7 +206,7 @@ This uploads agent prompts to Langfuse and builds the OMOP world model knowledge
 ### Interactive Mode
 
 ```bash
-uv run python -m agno_fastomop.run_agent
+
 ```
 
 Enter queries at the prompt:
@@ -261,16 +287,6 @@ Batch mode accepts multiple JSON formats:
   "queries": ["query 1", "query 2"]
 }
 ```
-
-### Web Interface
-
-Launch the web-based interface powered by AgentOS:
-
-```bash
-uv run python -m agno_fastomop.web_interface
-```
-
-Access the interface at `http://localhost:7777`. The web UI provides real-time query submission and workflow execution monitoring. Auto-reload is disabled to prevent DuckDB file locking conflicts.
 
 ## Architecture
 

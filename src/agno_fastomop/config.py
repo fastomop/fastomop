@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 import tomli
 from typing import Dict, Any
 
-load_dotenv()
-
-#Project config
+# Load .env file from project root
 CONFIG_DIR = Path(__file__).parent.parent.parent
+ENV_PATH = CONFIG_DIR / ".env"
+load_dotenv(dotenv_path=ENV_PATH)
+
+# Project config
 CONFIG_PATH = CONFIG_DIR / "config.toml"
 LOCAL_CONFIG_PATH = CONFIG_DIR / "config.local.toml"
 

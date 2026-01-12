@@ -1,0 +1,213 @@
+{
+  "metadata": {
+    "input_file": "/Users/k24118093/Documents/foem/output/dataset.json",
+    "output_file": "results_mimic_limit_10.json",
+    "start_time": "2025-12-03T23:25:53.129621",
+    "end_time": "2025-12-03T23:33:20.551865",
+    "total_time": 447.422244,
+    "total_queries": 10,
+    "successful_queries": 10,
+    "failed_queries": 0,
+    "average_execution_time": 44.4305038
+  },
+  "results": [
+    {
+      "query_id": 1,
+      "query": "Number of patients grouped by gender and ethnicity.",
+      "metadata": {
+        "id": 1,
+        "expected_output": "WITH gen_temp1 AS ( SELECT concept_id, concept_name AS gender FROM concept WHERE domain_id = 'Gender' AND standard_concept = 'S' ), eth_temp1 AS ( SELECT concept_id, concept_name AS ethnicity FROM concept WHERE domain_id = 'Ethnicity' AND standard_concept = 'S' ) SELECT COALESCE(gen_temp1.gender, 'Unknown') AS gender, COALESCE(eth_temp1.ethnicity, 'Unknown') AS ethnicity, COUNT(DISTINCT pe1.person_id) AS number_of_patients FROM person AS pe1 LEFT JOIN gen_temp1 ON pe1.gender_concept_id = gen_temp1.concept_id LEFT JOIN eth_temp1 ON pe1.ethnicity_concept_id = eth_temp1.concept_id GROUP BY gen_temp1.gender, eth_temp1.ethnicity;",
+        "execution_result": [
+          [
+            "FEMALE",
+            "Unknown",
+            172491
+          ],
+          [
+            "MALE",
+            "Unknown",
+            145774
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:25:53.129650",
+      "status": "success",
+      "response": "Found 318,265 patients.",
+      "sql_query": "SELECT p.gender_concept_id, p.race_concept_id, COUNT(DISTINCT p.person_id) AS patient_count FROM omop.person p GROUP BY p.gender_concept_id, p.race_concept_id LIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"gender_concept_id,race_concept_id,patient_count\\n8507,0,145774\\n8532,0,172491\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 16.289835
+    },
+    {
+      "query_id": 2,
+      "query": "Count of patients grouped by race.",
+      "metadata": {
+        "id": 2,
+        "expected_output": "WITH alias1 AS ( SELECT concept_id, concept_name AS race FROM concept WHERE domain_id = 'Race' AND standard_concept = 'S' ) SELECT race, COUNT(DISTINCT pe1.person_id) AS number_of_patients FROM person AS pe1 LEFT JOIN alias1 ON pe1.race_concept_id = alias1.concept_id GROUP BY race;",
+        "execution_result": [
+          [
+            null,
+            318265
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:26:09.419551",
+      "status": "success",
+      "response": "Found 318,265 patients.",
+      "sql_query": "SELECT c.concept_name AS race, COUNT(DISTINCT p.person_id) AS patient_count\nFROM omop.person p\nJOIN omop.concept c ON p.race_concept_id = c.concept_id\nGROUP BY c.concept_name\nORDER BY patient_count DESC\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"race,patient_count\\nNo matching concept,318265\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 14.591916
+    },
+    {
+      "query_id": 3,
+      "query": "Counts of patients taking drug acetaminophen 325 MG Oral Tablet and heparin sodium, porcine 5000 UNT/ML Injectable Solution within 30 days.",
+      "metadata": {
+        "id": 3,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '313782' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            93398
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:26:24.011785",
+      "status": "success",
+      "response": "Found 93398 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '313782' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_hierarchy AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\n\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_hierarchy AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n)\nSELECT COUNT(DISTINCT p.person_id) FROM omop.person p\nWHERE EXISTS (\n  SELECT 1 FROM omop.drug_exposure de1\n  WHERE de1.person_id = p.person_id\n    AND de1.drug_concept_id IN (SELECT concept_id FROM drug1_hierarchy)\n    AND EXISTS (\n      SELECT 1 FROM omop.drug_exposure de2\n      WHERE de2.person_id = p.person_id\n        AND de2.drug_concept_id IN (SELECT concept_id FROM drug2_hierarchy)\n        AND CAST(\n          EXTRACT(epoch FROM\n            CAST(GREATEST(de1.drug_exposure_start_date, de2.drug_exposure_start_date) AS TIMESTAMP) -\n            CAST(LEAST(de1.drug_exposure_start_date, de2.drug_exposure_start_date) AS TIMESTAMP)\n          ) / 86400 AS BIGINT\n        ) <= 30\n    )\n)\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n93398\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 84.079211
+    },
+    {
+      "query_id": 4,
+      "query": "Counts of patients taking drug sennosides, USP 8.6 MG Oral Tablet and docusate sodium 100 MG Oral Capsule [DOK] within 30 days.",
+      "metadata": {
+        "id": 4,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '312935' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            93341
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:27:48.091279",
+      "status": "success",
+      "response": "Found 93341 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '312935' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug1_concepts dc ON de.drug_concept_id = dc.concept_id\n),\n\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug2_concepts dc ON de.drug_concept_id = dc.concept_id\n)\nSELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)\n  ) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n93341\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 50.014782
+    },
+    {
+      "query_id": 5,
+      "query": "Counts of patients taking drug sennosides, USP 8.6 MG Oral Tablet and heparin sodium, porcine 5000 UNT/ML Injectable Solution within 30 days.",
+      "metadata": {
+        "id": 5,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '312935' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            91743
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:28:38.106202",
+      "status": "success",
+      "response": "Found 91743 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '312935' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  WHERE de.drug_concept_id IN (SELECT concept_id FROM drug1_concepts)\n),\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  WHERE de.drug_concept_id IN (SELECT concept_id FROM drug2_concepts)\n)\nSELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) -\n  CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)\n) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n91743\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 51.977945
+    },
+    {
+      "query_id": 6,
+      "query": "Counts of patients taking drug sennosides, USP 8.6 MG Oral Tablet and acetaminophen 325 MG Oral Tablet within 30 days.",
+      "metadata": {
+        "id": 6,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '312935' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '313782' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            87346
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:29:30.084308",
+      "status": "success",
+      "response": "Found 87346 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '312935' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug1_concepts dc ON de.drug_concept_id = dc.concept_id\n),\n\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '313782' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug2_concepts dc ON de.drug_concept_id = dc.concept_id\n)\nSELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)\n) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n87346\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 44.007599
+    },
+    {
+      "query_id": 7,
+      "query": "Counts of patients taking drug acetaminophen 325 MG Oral Tablet and docusate sodium 100 MG Oral Capsule [DOK] within 30 days.",
+      "metadata": {
+        "id": 7,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '313782' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            84627
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:30:14.092022",
+      "status": "success",
+      "response": "Found 84627 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '313782' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug1_concepts d1 ON de.drug_concept_id = d1.concept_id\n),\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug2_concepts d2 ON de.drug_concept_id = d2.concept_id\n)\nSELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) -\n  CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)\n) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n84627\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 46.043549
+    },
+    {
+      "query_id": 8,
+      "query": "Counts of patients taking drug heparin sodium, porcine 5000 UNT/ML Injectable Solution and docusate sodium 100 MG Oral Capsule [DOK] within 30 days.",
+      "metadata": {
+        "id": 8,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            82836
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:31:00.135719",
+      "status": "success",
+      "response": "Found 82836 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug1_concepts d1 ON de.drug_concept_id = d1.concept_id\n),\n\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug2_concepts d2 ON de.drug_concept_id = d2.concept_id\n)\nSELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n82836\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 44.296152
+    },
+    {
+      "query_id": 9,
+      "query": "Counts of patients taking drug 1000 ML sodium chloride 9 MG/ML Injection and heparin sodium, porcine 5000 UNT/ML Injectable Solution within 30 days.",
+      "metadata": {
+        "id": 9,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1807639' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            72425
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:31:44.432058",
+      "status": "success",
+      "response": "Found 72425 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1807639' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug1_concepts d1 ON de.drug_concept_id = d1.concept_id\n),\n\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept\n  WHERE vocabulary_id = 'RxNorm' AND concept_code = '1361615' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to'\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug2_concepts d2 ON de.drug_concept_id = d2.concept_id\n)\nSELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) -\n  CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)\n) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"count\\n72425\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 43.002925
+    },
+    {
+      "query_id": 10,
+      "query": "Counts of patients taking drug 2 ML ondansetron 2 MG/ML Injection and docusate sodium 100 MG Oral Capsule [DOK] within 30 days.",
+      "metadata": {
+        "id": 10,
+        "expected_output": "WITH drug1_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1740467' ), drug1_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug1_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug1_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug1_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug2_source AS ( SELECT concept_id FROM concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' ), drug2_mapped AS ( SELECT concept_id_2 AS concept_id FROM drug2_source ds JOIN concept_relationship cr ON ds.concept_id = cr.concept_id_1 WHERE cr.relationship_id = 'Maps to' ), drug2_concepts AS ( SELECT DISTINCT ca.descendant_concept_id AS concept_id FROM drug2_mapped dm JOIN concept c ON dm.concept_id = c.concept_id JOIN concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id ), drug1_exposures AS ( SELECT dr1.person_id, dr1.drug_exposure_start_date AS start_date FROM drug_exposure dr1 JOIN drug1_concepts d1 ON dr1.drug_concept_id = d1.concept_id ), drug2_exposures AS ( SELECT dr2.person_id, dr2.drug_exposure_start_date AS start_date FROM drug_exposure dr2 JOIN drug2_concepts d2 ON dr2.drug_concept_id = d2.concept_id ) SELECT COUNT(DISTINCT a.person_id) FROM drug1_exposures a JOIN drug2_exposures b ON a.person_id = b.person_id WHERE CAST(EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) - CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)) / 86400 AS BIGINT) <= 30;",
+        "execution_result": [
+          [
+            68435
+          ]
+        ]
+      },
+      "timestamp": "2025-12-03T23:32:27.435067",
+      "status": "success",
+      "response": "Found 68435 patients.",
+      "sql_query": "WITH drug1_source AS (\n  SELECT concept_id FROM omop.concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1740467' AND invalid_reason IS NULL\n),\ndrug1_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug1_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to' AND cr.invalid_reason IS NULL\n),\ndrug1_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug1_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug1_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug1_concepts d1 ON de.drug_concept_id = d1.concept_id\n),\ndrug2_source AS (\n  SELECT concept_id FROM omop.concept WHERE vocabulary_id = 'RxNorm' AND concept_code = '1483571' AND invalid_reason IS NULL\n),\ndrug2_mapped AS (\n  SELECT concept_id_2 AS concept_id\n  FROM drug2_source ds\n  JOIN omop.concept_relationship cr ON ds.concept_id = cr.concept_id_1\n  WHERE cr.relationship_id = 'Maps to' AND cr.invalid_reason IS NULL\n),\ndrug2_concepts AS (\n  SELECT DISTINCT ca.descendant_concept_id AS concept_id\n  FROM drug2_mapped dm\n  JOIN omop.concept c ON dm.concept_id = c.concept_id\n  JOIN omop.concept_ancestor ca ON c.concept_id = ca.ancestor_concept_id\n),\ndrug2_exposures AS (\n  SELECT de.person_id, de.drug_exposure_start_date AS start_date\n  FROM omop.drug_exposure de\n  JOIN drug2_concepts d2 ON de.drug_concept_id = d2.concept_id\n)\nSELECT COUNT(DISTINCT a.person_id) AS patient_count\nFROM drug1_exposures a\nJOIN drug2_exposures b ON a.person_id = b.person_id\nWHERE CAST(\n  EXTRACT(epoch FROM CAST(GREATEST(a.start_date, b.start_date) AS TIMESTAMP) -\n  CAST(LEAST(a.start_date, b.start_date) AS TIMESTAMP)\n) / 86400 AS BIGINT\n) <= 30\nLIMIT 1000;",
+      "raw_csv_result": "{\"_meta\": null, \"content\": [{\"type\": \"text\", \"text\": \"patient_count\\n68435\\n\", \"annotations\": null}], \"isError\": false}",
+      "execution_time": 50.001124
+    }
+  ]
+}

@@ -51,7 +51,7 @@ def create_database_agent(mcp_tools: MCPTools) -> Agent:
     )
     knowledge = Knowledge(
         vector_db=vectordb,
-        max_results=2,  # Reduced from 5 to speed up context processing
+        max_results=1,
     )
 
     #Create agent with connected MCP tools
@@ -60,10 +60,10 @@ def create_database_agent(mcp_tools: MCPTools) -> Agent:
         model=model,
         instructions=system_prompt,
         db=db,
-        enable_user_memories=True,
-        add_history_to_context=True,  # Enable conversation history
+        enable_user_memories=False,
+        add_history_to_context=False,  # Enable conversation history
         tools=[mcp_tools],
-        knowledge=knowledge,
+        #knowledge=knowledge,
         # No input_schema - the workflow passes previous step output as message content
         # No output_schema - return natural language for final answer
         # session_state only for JSON-serializable data
@@ -72,6 +72,7 @@ def create_database_agent(mcp_tools: MCPTools) -> Agent:
         },
         reasoning=agent_config.get("reasoning", True),
         markdown=agent_config.get("markdown", True),
+        retries=4,
     )
 
     return agent

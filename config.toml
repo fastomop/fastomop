@@ -18,7 +18,7 @@ temperature = 0.0  # Deterministic responses
 
 [models.providers.ollama]
 provider = "ollama"
-model_id = "gpt-oss:20b"
+model_id = "qwen3-coder:30b"
 
 [models.providers.ollama_light]
 provider = "ollama"
