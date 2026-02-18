@@ -1,12 +1,12 @@
 from agno.agent import Agent
 from agno.tools.mcp import MCPTools
-from agno.knowledge import Knowledge
+# from agno.knowledge import Knowledge
 from typing import Dict
 from pathlib import Path
 from agno_fastomop.agents.factory import create_model
 from agno_fastomop.config import get_agent_config, config
-from agno.vectordb.lancedb import LanceDb
-from agno.knowledge.embedder.sentence_transformer import SentenceTransformerEmbedder
+# from agno.vectordb.lancedb import LanceDb
+# from agno.knowledge.embedder.sentence_transformer import SentenceTransformerEmbedder
 from agno.db.sqlite import SqliteDb
 from agno_fastomop.schemas.schemas import SemanticContext
 from agno_fastomop.observability.tracer import get_langfuse_client
@@ -41,18 +41,18 @@ def create_database_agent(mcp_tools: MCPTools) -> Agent:
         with open(prompt_path, 'r') as f:
             system_prompt = f.read()
 
-    knowledge_path = Path(__file__).parent.parent / "knowledge" / "omop_world_model"
+#    knowledge_path = Path(__file__).parent.parent / "knowledge" / "omop_world_model"
     # Use same embedder as bootstrap (lightweight, 384 dim)
-    embedder = SentenceTransformerEmbedder(id="sentence-transformers/all-MiniLM-L6-v2")
-    vectordb = LanceDb(
-        uri=str(knowledge_path / ".lancedb"),
-        table_name="omop_world_model",
-        embedder=embedder,
-    )
-    knowledge = Knowledge(
-        vector_db=vectordb,
-        max_results=1,
-    )
+#    embedder = SentenceTransformerEmbedder(id="sentence-transformers/all-MiniLM-L6-v2")
+#    vectordb = LanceDb(
+#        uri=str(knowledge_path / ".lancedb"),
+#        table_name="omop_world_model",
+#        embedder=embedder,
+#    )
+#    knowledge = Knowledge(
+#        vector_db=vectordb,
+#        max_results=1,
+#    )
 
     #Create agent with connected MCP tools
     agent = Agent(
@@ -72,6 +72,7 @@ def create_database_agent(mcp_tools: MCPTools) -> Agent:
         },
         reasoning=agent_config.get("reasoning", True),
         markdown=agent_config.get("markdown", True),
+        stream=False,
         retries=4,
     )
 

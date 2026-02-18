@@ -5,10 +5,10 @@ x-fastomop-common: &fastomop-common
     dockerfile: Dockerfile
   image: fastomop:latest
 
-  environment:
-    # Ollama configuration - connect to remote GPU node
-    - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:8002}
+  env_file:
+    - .env
 
+  environment:
     # Database configuration
     - DB_PATH=${DB_PATH:-/app/data/omop.duckdb}
 
@@ -25,9 +25,12 @@ x-fastomop-common: &fastomop-common
   volumes:
     # Configuration files
     - ./config.toml:/app/config.toml:ro
-
+    - ./config.local.toml:/app/config.local.toml:ro
     # Data directory for DuckDB and knowledge base
     - ./data:/app/data
+
+    # Mount OMCP server
+    - /home/ubuntu/omcp_server:/home/ubuntu/omcp_server
 
     # Optional: mount prompts for easy editing
     - ./src/agno_fastomop/prompts:/app/src/agno_fastomop/prompts:ro
@@ -40,11 +43,11 @@ x-fastomop-common: &fastomop-common
   deploy:
     resources:
       limits:
-        cpus: '4'
-        memory: 8G
-      reservations:
         cpus: '2'
         memory: 4G
+      reservations:
+        cpus: '1'
+        memory: 2G
 
 services:
   # Web Interface (default, long-running service)
@@ -56,10 +59,12 @@ services:
     ports:
       - "7777:7777"
 
-    command: ["python", "-m", "agno_fastomop.web_interface"]
+    command:
+      - "/bin/bash"
+      - "/app/start.sh"
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:7777"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -89,11 +94,15 @@ services:
     profiles: ["batch"]  # Only run when explicitly called
 
     volumes:
-      # Inherit common volumes
+      # Configuration files (must include config.local.toml for correct OMCP path)
       - ./config.toml:/app/config.toml:ro
+      - ./config.local.toml:/app/config.local.toml:ro
       - ./data:/app/data
       - ./src/agno_fastomop/prompts:/app/src/agno_fastomop/prompts:ro
       - ./src/agno_fastomop/knowledge:/app/src/agno_fastomop/knowledge
+
+      # Mount OMCP server (required for MCP tools)
+      - /home/ubuntu/omcp_server:/home/ubuntu/omcp_server
 
       # Mount queries directory for batch processing
       - ./queries:/app/queries

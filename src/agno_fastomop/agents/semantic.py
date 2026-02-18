@@ -48,6 +48,7 @@ def create_semantic_agent(mcp_tools: MCPTools) -> Agent:
         reasoning=agent_config.get("reasoning", False),
         markdown=False,  # Don't format as markdown - return raw JSON
         add_history_to_context=False,  # Enable conversation history
+        stream=False,
         retries=4,
     )
     return agent

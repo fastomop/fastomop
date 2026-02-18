@@ -1,5 +1,6 @@
 # Environment variables and local config
 .env
+.env.docker
 config.local.toml
 .claude
 
@@ -32,6 +33,7 @@ src/agno_fastomop/knowledge/**/.lancedb/
 # Batch processing results
 *_results.json
 queries_results.json
+queries/
 test_results/
 
 # Testing

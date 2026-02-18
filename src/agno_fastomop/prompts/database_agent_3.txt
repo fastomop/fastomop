@@ -37,7 +37,7 @@ drug{N}_concepts AS (
   JOIN {schema}.concept_ancestor ca ON c.concept_id=ca.ancestor_concept_id
 )
 
-Condition Hierarchy (SNOMED) - REQUIRED for all condition queries
+### Condition Hierarchy (SNOMED) - REQUIRED for all condition queries
 
 WITH seed_{N} AS (
   SELECT concept_id AS src_id FROM {schema}.concept
@@ -59,6 +59,21 @@ desc_{N} AS (
 
 Pattern: source → mapped → descendants (via concept_ancestor)
 
+### Observation/Measurement Hierarchy (LOINC/SNOMED)
+
+WITH obs_{N}_source AS (
+  SELECT concept_id FROM {schema}.concept
+  WHERE concept_code='{code}' AND invalid_reason IS NULL
+),
+obs_{N}_concepts AS (
+  SELECT DISTINCT ca.descendant_concept_id AS concept_id
+  FROM obs_{N}_source os
+  JOIN {schema}.concept_ancestor ca ON os.concept_id=ca.ancestor_concept_id
+  JOIN {schema}.concept c ON c.concept_id=ca.descendant_concept_id
+  WHERE c.domain_id IN ('Measurement','Observation') AND c.invalid_reason IS NULL
+)
+
+
 ---
 Query Templates by Category
 
@@ -73,6 +88,11 @@ SINGLE_CONDITION:
 WITH [condition hierarchy CTEs]
 SELECT COUNT(DISTINCT co.person_id) FROM {schema}.condition_occurrence co
 JOIN desc_cond dc ON co.condition_concept_id=dc.concept_id;
+
+SINGLE_OBSERVATION:
+WITH [observation hierarchy CTEs]
+SELECT COUNT(DISTINCT m.person_id) FROM {schema}.measurement m
+JOIN obs_concepts oc ON m.measurement_concept_id=oc.concept_id;
 
 BIRTH_YEAR:
 SELECT COUNT(DISTINCT person_id) FROM {schema}.person WHERE year_of_birth={year};
@@ -92,6 +112,21 @@ WITH [cond_a hierarchy], [cond_b hierarchy],
 persons_a AS (SELECT DISTINCT co.person_id FROM {schema}.condition_occurrence co JOIN desc_a da ON co.condition_concept_id=da.concept_id),
 persons_b AS (SELECT DISTINCT co.person_id FROM {schema}.condition_occurrence co JOIN desc_b db ON co.condition_concept_id=db.concept_id)
 SELECT COUNT(DISTINCT a.person_id) FROM persons_a a JOIN persons_b b USING(person_id);
+
+MULTI_ENTITY_OR:
+WITH [hierarchy CTEs for each entity],
+union_results AS (
+  -- Conditions
+  SELECT DISTINCT person_id FROM {schema}.condition_occurrence co
+  JOIN desc_1 ON co.condition_concept_id=desc_1.concept_id
+  UNION
+  -- Observations/Measurements
+  SELECT DISTINCT person_id FROM {schema}.measurement m
+  JOIN obs_2_concepts ON m.measurement_concept_id=obs_2_concepts.concept_id
+  UNION
+  -- Add more UNION blocks for additional entities
+)
+SELECT COUNT(DISTINCT person_id) FROM union_results;
 
 Temporal Queries
 
@@ -134,6 +169,7 @@ Quick Reference
 Domain → Table mapping:
 - Drug → drug_exposure (drug_exposure_start_date, drug_concept_id)
 - Condition → condition_occurrence (condition_start_date, condition_concept_id)
+- Measurement/Observation → measurement (measurement_date, measurement_concept_id)
 
 Placeholders:
 - {schema} from Get_Information_Schema()

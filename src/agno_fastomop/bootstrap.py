@@ -13,7 +13,7 @@ def bootstrap_prompts():
     prompts_dir = Path(__file__).parent / "prompts"
 
     required_prompts = [
-        ("database_agent", "database_agent.txt"),
+        ("database_agent", "database_agent_3.txt"),
         ("semantic_agent", "semantic_agent_fastomop.txt"),
         ("supervisor", "supervisor.txt"),
     ]

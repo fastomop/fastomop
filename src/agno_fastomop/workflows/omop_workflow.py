@@ -1,8 +1,10 @@
 from agno.workflow import Workflow, Step
 from agno.tools.mcp import MCPTools
+from agno.compression.manager import CompressionManager
 from agno_fastomop.agents.semantic import create_semantic_agent
 from agno_fastomop.agents.database import create_database_agent
-from agno_fastomop.config import config
+from agno_fastomop.agents.factory import create_model
+from agno_fastomop.config import config, get_agent_config
 from agno_fastomop.observability.trace_context import write_trace_context_otel, clear_trace_context
 from agno.db.sqlite import SqliteDb
 from langfuse import observe, Langfuse, get_client
@@ -138,9 +140,29 @@ async def initialize_workflow(batch_mode=False):
         # Create shared database for conversation history and memory
         db = SqliteDb(db_file="db_agent.db")
 
+        # Create compression manager for batch mode (uses same model as agents)
+        # Token-based compression triggers at ~6000 tokens to save context space
+        compression_manager = None
+        if batch_mode:
+            # Use the semantic agent config (both agents use same model provider)
+            agent_config = get_agent_config("semantic")
+            compression_model = create_model(agent_config)
+            compression_manager = CompressionManager(
+                model=compression_model,
+                compress_tool_results=True,
+                compress_token_limit=6000,  # Trigger compression at 6000 tokens
+            )
+            print("✓ Compression manager created for batch mode (token limit: 6000)")
+
         # Create agents with shared MCP - both query the database
         semantic_agent = create_semantic_agent(_mcp_tools)  # Queries concept table
         database_agent = create_database_agent(_mcp_tools)  # Generates & executes SQL
+
+        # Attach compression manager to agents in batch mode
+        if compression_manager is not None:
+            semantic_agent.compression_manager = compression_manager
+            database_agent.compression_manager = compression_manager
+            print("✓ Compression manager attached to both agents")
 
         # Configure workflow history based on mode
         # Batch mode: disable history for performance (independent queries)
