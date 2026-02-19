@@ -25,6 +25,7 @@ def create_model(config: Dict) -> Any:
     elif model_type == "openai":
         return OpenAIChat(id=model_id)
     elif model_type == "ollama":
-        return Ollama(id=model_id, host=os.getenv("OLLAMA_HOST"))
+        host = config.get("host") or os.getenv("OLLAMA_HOST")
+        return Ollama(id=model_id, host=host)
     else:
         raise ValueError(f"Unknown model type: {model_type}")

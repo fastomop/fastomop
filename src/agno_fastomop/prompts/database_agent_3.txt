@@ -171,6 +171,20 @@ Domain → Table mapping:
 - Condition → condition_occurrence (condition_start_date, condition_concept_id)
 - Measurement/Observation → measurement (measurement_date, measurement_concept_id)
 
+---
+Imaging Queries (image_occurrence, image_feature, note)
+
+When the query involves imaging/X-ray/radiology (person_id, study_id, image_occurrence_id):
+1. Call Get_Information_Schema() to see image_occurrence columns
+2. **CRITICAL**: SELECT the column that stores the **full/absolute file path** for each image (required for HPC fetch)
+   - Look for: image_path, file_path, image_file_path, or similar
+   - The path MUST be absolute (start with /) - NOT just the dicom_id or filename
+3. Join image_occurrence with image_feature (CheXpert labels), note (reports) as needed
+4. Return results with the full path column aliased as local_path for downstream image fetch
+
+Example: SELECT io.person_id, io.image_occurrence_id, io.image_path AS local_path, ...
+FROM {schema}.image_occurrence io WHERE ... (use actual column name from schema)
+
 Placeholders:
 - {schema} from Get_Information_Schema()
 - {code} from entity.concept_code

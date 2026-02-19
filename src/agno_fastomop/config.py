@@ -68,12 +68,30 @@ def get_agent_config(agent_name:str) -> Dict[str, Any]:
         "MCP_COMMAND": os.getenv("MCP_COMMAND", config["omcp"]["command"]),
     }
 
-    #Add azure specifics
+    if provider_config.get("host"):
+        complete_config["host"] = provider_config["host"]
+
     if provider == "azure":
         complete_config["api_version"] = provider_config.get("api_version", "2024-10-21")
         complete_config["temperature"] = provider_config.get("temperature")
 
     return complete_config
+
+
+def get_team_model_config() -> Dict[str, Any]:
+    """
+    Get model config for team orchestrators (OMOP teams, Clinical Imaging Team).
+    Resolves default_provider to actual MODEL_TYPE and MODEL_ID.
+    """
+    provider_key = config["models"].get("default_provider", "ollama_medgemma_27b")
+    provider_config = config["models"]["providers"][provider_key].copy()
+    result = {
+        "MODEL_TYPE": provider_config["provider"],
+        "MODEL_ID": provider_config["model_id"],
+    }
+    if provider_config.get("host"):
+        result["host"] = provider_config["host"]
+    return result
 
 
 def validate_config():
@@ -89,21 +107,28 @@ def validate_config():
     for agent in config["agents"].values():
         provider = agent.get("model_provider", config["models"]["default_provider"])
         providers_used.add(provider)
+    providers_used.add(config["models"].get("default_provider", ""))
+
+    # Resolve to actual provider types (ollama, azure, etc.)
+    provider_types = set()
+    for p in providers_used:
+        if p and p in config["models"].get("providers", {}):
+            provider_types.add(config["models"]["providers"][p].get("provider", p))
 
     required_env = required_base.copy()
 
-    if "azure" in providers_used:
+    if "azure" in provider_types:
         required_env.append("AZURE_OPENAI_API_KEY")
         required_env.append("AZURE_OPENAI_ENDPOINT")
         required_env.append("AZURE_OPENAI_DEPLOYMENT")
 
-    if "openai" in providers_used:
+    if "openai" in provider_types:
         required_env.append("OPENAI_API_KEY")
 
-    if "ollama" in providers_used:
+    if "ollama" in provider_types:
         required_env.append("OLLAMA_HOST")
 
-    if "anthropic" in providers_used:
+    if "anthropic" in provider_types:
         required_env.append("ANTHROPIC_API_KEY")
 
     missing = [var for var in required_env if not os.getenv(var)]

@@ -13,9 +13,10 @@ RUN apt-get update && apt-get install -y \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Install OMCP dependencies
+# Install OMCP dependencies (postgres + duckdb for Ibis backends)
 RUN pip install --no-cache-dir\
     "ibis-framework[postgres]>=10.5.0" \
+    "ibis-framework[duckdb]>=10.5.0" \
     "langfuse>=3.5.2" \
     "mcp[cli]>=1.6.0" \
     "psycopg>=3.2.6"

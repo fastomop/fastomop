@@ -16,6 +16,7 @@ def bootstrap_prompts():
         ("database_agent", "database_agent_3.txt"),
         ("semantic_agent", "semantic_agent_fastomop.txt"),
         ("supervisor", "supervisor.txt"),
+        ("imaging_agent", "imaging_agent.txt"),
     ]
 
     for prompt_name, file_name in required_prompts:

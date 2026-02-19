@@ -58,6 +58,9 @@ async def initialize_workflow(batch_mode=False):
         omcp_env = {
             "DB_TYPE": db_type,
             "DB_PATH": db_path,
+            "CDM_SCHEMA": os.getenv("CDM_SCHEMA", "omop"),
+            "VOCAB_SCHEMA": os.getenv("VOCAB_SCHEMA", "omop"),
+            "ALLOW_SOURCE_VALUE_COLUMNS": os.getenv("ALLOW_SOURCE_VALUE_COLUMNS", "false"),
             "LANGFUSE_PUBLIC_KEY": os.getenv("LANGFUSE_PUBLIC_KEY", ""),
             "LANGFUSE_SECRET_KEY": os.getenv("LANGFUSE_SECRET_KEY", ""),
             "LANGFUSE_HOST": os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),

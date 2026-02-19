@@ -21,6 +21,7 @@ show_usage() {
     echo "  test               Run interactive CLI mode"
     echo "  bootstrap          Initialize prompts and knowledge base"
     echo "  batch <file>       Run batch processing on queries file"
+    echo "  eval [options]     Run imaging VQA evaluation"
     echo "  rebuild            Rebuild and restart container"
     echo "  health             Check health status"
     echo "  stats              Show resource usage"
@@ -31,6 +32,8 @@ show_usage() {
     echo "  ./manage.sh start                          # Start web interface"
     echo "  ./manage.sh test                           # Run interactive mode"
     echo "  ./manage.sh batch queries.json             # Process batch queries"
+    echo "  ./manage.sh eval --split test --limit 100  # Run VQA eval (test split, 100 Qs)"
+    echo "  ./manage.sh eval --mode team --limit 10    # Full pipeline eval (10 Qs)"
     echo "  ./manage.sh bootstrap                      # First-time setup"
     echo ""
 }
@@ -113,6 +116,30 @@ case "$1" in
         cp "$QUERIES_FILE" queries/queries.json
         docker compose run --rm --profile batch batch
         echo "✓ Batch processing complete"
+        ;;
+
+    eval)
+        shift  # consume "eval" arg
+        DATASET="${DATASET:-medical-cxr-vqa-questions.csv}"
+        EVAL_DIR="eval"
+        mkdir -p "$EVAL_DIR"
+
+        # Copy dataset to eval dir if it's not already there
+        if [ -f "$DATASET" ] && [ ! -f "$EVAL_DIR/$(basename $DATASET)" ]; then
+            cp "$DATASET" "$EVAL_DIR/"
+        fi
+
+        DATASET_NAME="$(basename $DATASET)"
+        echo "Running imaging VQA evaluation: $DATASET_NAME"
+        echo "Extra args: $@"
+
+        # Build command: default to direct mode, test split, 100 limit
+        docker compose run --rm --profile eval eval \
+            python -m agno_fastomop.run_imaging_eval \
+            --dataset "/app/eval/$DATASET_NAME" \
+            --output "/app/eval/${DATASET_NAME%.csv}_results.json" \
+            "$@"
+        echo "Results saved to $EVAL_DIR/"
         ;;
 
     rebuild)

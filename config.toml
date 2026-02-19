@@ -1,6 +1,7 @@
 [models]
-default_provider = "ollama"
-default_id = "gpt-oss-20b"
+# Default for team orchestrators (OMOP Conversation, OMOP Complex, Clinical Imaging Team)
+default_provider = "ollama_medgemma_27b"
+default_id = "MedAIBase/MedGemma1.0:27b"
 
 [models.providers.anthropic]
 provider = "anthropic"
@@ -24,9 +25,19 @@ model_id = "qwen3-coder:30b"
 provider = "ollama"
 model_id = "qwen2.5:7b"
 
+# MedGemma 1.5 4b - for imaging agent (vision-capable)
+[models.providers.ollama_medgemma]
+provider = "ollama"
+model_id = "MedAIBase/MedGemma1.5:4b"
+
+# MedGemma 27b - for semantic, database, and team orchestrators
+[models.providers.ollama_medgemma_27b]
+provider = "ollama"
+model_id = "lukaspetrik/gemma3-tools:27b"
+
 [agents.database]
 name = "OMOP Database Agent"
-model_provider = "azure"
+model_provider = "ollama_medgemma_27b"
 prompt_name = "database_agent"
 prompt_label = "dev"
 reasoning = false
@@ -34,17 +45,31 @@ markdown = false
 
 [agents.semantic]
 name = "OMOP Semantic Agent"
-model_provider = "azure"
+model_provider = "ollama_medgemma_27b"
 prompt_name = "semantic_agent"
 prompt_label = "dev"
 reasoning = false  # Disable reasoning - output_schema enforces JSON, reasoning adds explanatory text
 
 [agents.orchestrator]
 name = "OMOP Orchestrator"
-model_provider = "azure"
+model_provider = "ollama_medgemma_27b"
 prompt_name = "supervisor"
 prompt_label = "dev"
 reasoning = false
+
+[agents.imaging]
+name = "Clinical Imaging Agent"
+model_provider = "ollama_medgemma"
+prompt_name = "imaging_agent"
+prompt_label = "dev"
+reasoning = false
+markdown = true
+
+[hpc]
+host = ""
+username = ""
+ssh_key_path = ""
+port = 22
 
 [omcp]
 transport = "stdio"

@@ -135,6 +135,32 @@ Domain → Table mapping:
 - Drug → drug_exposure (drug_exposure_start_date, drug_concept_id)
 - Condition → condition_occurrence (condition_start_date, condition_concept_id)
 
+---
+Imaging Queries (image_occurrence, image_feature, note)
+
+**Column mapping (MUST use these exact names):**
+- `local_path` → full absolute file path on HPC (e.g. /home/ubuntu/mimic-cxr/.../image.jpg). ALWAYS SELECT this column.
+- `image_source_value` → the DICOM ID / image identifier (e.g. c90c5251-7c0914c6-111f4926-c8a283d3-98cc94c3). When the user says "X-ray <id>" or "dicom_id", match against this column.
+- `subject_id` → patient/subject identifier (integer). When user says "patient 19014190", use WHERE subject_id = 19014190.
+- `study_id` → study identifier (integer). When user says "study 56815063", use WHERE study_id = 56815063.
+- `view_position` → view (PA, AP, LATERAL)
+- `modality_source_value` → modality (DX, CR)
+- `image_feature` table → CheXpert labels. Join on image_occurrence_id. Has `feature_source_value` (label name) and `value_as_concept_name` (Positive/Negative/Uncertain).
+- `note` table → radiology reports. Join on person_id via visit_occurrence_id or person_id. Has `note_text`.
+
+When the query involves imaging/X-ray/radiology:
+1. Call Get_Information_Schema() to confirm schema
+2. ALWAYS SELECT local_path (the full absolute path) - this is required for image fetch
+3. Join image_feature and note as needed
+4. Filter by subject_id, study_id, and/or image_source_value as specified
+
+Example:
+SELECT io.local_path, io.image_source_value, io.view_position,
+       if2.feature_source_value, if2.value_as_concept_name
+FROM {schema}.image_occurrence io
+LEFT JOIN {schema}.image_feature if2 ON io.image_occurrence_id = if2.image_occurrence_id
+WHERE io.subject_id = 19014190 AND io.study_id = 56815063
+
 Placeholders:
 - {schema} from Get_Information_Schema()
 - {code} from entity.concept_code

@@ -1,0 +1,4 @@
+# Lightweight image for SSHFS mount of remote DuckDB
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y sshfs fuse3 && rm -rf /var/lib/apt/lists/*
+ENTRYPOINT []

@@ -1,3 +1,8 @@
+# DuckDB mount host (set in .env or use default)
+x-duckdb-mount-env: &duckdb-mount-env
+  OMOP_MIMIC_HOST: ${OMOP_MIMIC_HOST:-10.211.116.159}
+  OMOP_MIMIC_USER: ${OMOP_MIMIC_USER:-ubuntu}
+
 # Shared configuration for all FastOMOP services
 x-fastomop-common: &fastomop-common
   build:
@@ -9,8 +14,8 @@ x-fastomop-common: &fastomop-common
     - .env
 
   environment:
-    # Database configuration
-    - DB_PATH=${DB_PATH:-/app/data/omop.duckdb}
+    # Database configuration (DuckDB at ./data/mimic-cxr/mimic_to_omop.duckdb - mounted by duckdb-mount service)
+    - DB_PATH=${DB_PATH:-/app/data/mimic-cxr/mimic_to_omop.duckdb}
 
     # Langfuse observability (optional)
     - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
@@ -26,11 +31,14 @@ x-fastomop-common: &fastomop-common
     # Configuration files
     - ./config.toml:/app/config.toml:ro
     - ./config.local.toml:/app/config.local.toml:ro
-    # Data directory for DuckDB and knowledge base
+    # Data directory: ./data:/app/data (includes mimic-cxr/ from duckdb-mount service)
     - ./data:/app/data
 
     # Mount OMCP server
     - /home/ubuntu/omcp_server:/home/ubuntu/omcp_server
+
+    # SSH keys for imaging team HPC image fetch (paramiko)
+    - ~/.ssh:/home/fastomop/.ssh:ro
 
     # Optional: mount prompts for easy editing
     - ./src/agno_fastomop/prompts:/app/src/agno_fastomop/prompts:ro
@@ -50,11 +58,49 @@ x-fastomop-common: &fastomop-common
         memory: 2G
 
 services:
+  # SSHFS mount for remote DuckDB (runs first, keeps mount alive)
+  duckdb-mount:
+    build:
+      context: .
+      dockerfile: Dockerfile.duckdb-mount
+    image: fastomop-duckdb-mount:latest
+    container_name: fastomop-duckdb-mount
+    environment:
+      <<: *duckdb-mount-env
+    volumes:
+      - ./data/mimic-cxr:/mnt/duckdb
+      - ~/.ssh:/root/.ssh:ro
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    security_opt:
+      - apparmor:unconfined
+    network_mode: host
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /mnt/duckdb &&
+        sshfs -o StrictHostKeyChecking=accept-new,default_permissions $${OMOP_MIMIC_USER}@$${OMOP_MIMIC_HOST}:/home/$${OMOP_MIMIC_USER}/mimic-cxr /mnt/duckdb &&
+        echo "DuckDB mount ready" &&
+        exec sleep infinity
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "test", "-f", "/mnt/duckdb/mimic_to_omop.duckdb"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
   # Web Interface (default, long-running service)
   web:
     <<: *fastomop-common
     container_name: fastomop-web
     restart: unless-stopped
+    depends_on:
+      duckdb-mount:
+        condition: service_healthy
 
     ports:
       - "7777:7777"
@@ -104,10 +150,36 @@ services:
       # Mount OMCP server (required for MCP tools)
       - /home/ubuntu/omcp_server:/home/ubuntu/omcp_server
 
+      # SSH keys for imaging team HPC image fetch
+      - ~/.ssh:/home/fastomop/.ssh:ro
+
       # Mount queries directory for batch processing
       - ./queries:/app/queries
 
     command: ["python", "-m", "agno_fastomop.run_agent", "--batch", "/app/queries/queries.json"]
+
+  # Imaging Eval Batch (one-off) - Medical CXR VQA evaluation
+  eval:
+    <<: *fastomop-common
+    container_name: fastomop-eval
+    profiles: ["eval"]
+
+    volumes:
+      - ./config.toml:/app/config.toml:ro
+      - ./config.local.toml:/app/config.local.toml:ro
+      - ./data:/app/data
+      - ./src/agno_fastomop:/app/src/agno_fastomop:ro
+      - /home/ubuntu/omcp_server:/home/ubuntu/omcp_server
+      - ~/.ssh:/home/fastomop/.ssh:ro
+      - ./queries:/app/queries
+      - ./eval:/app/eval
+
+    command: ["python", "-m", "agno_fastomop.run_imaging_eval",
+              "--dataset", "/app/eval/medical-cxr-vqa-questions.csv",
+              "--output", "/app/eval/results.json",
+              "--mode", "team",
+              "--split", "test",
+              "--limit", "100"]
 
   # Bootstrap/Utility Service (one-off)
   bootstrap:
