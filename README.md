@@ -1,5 +1,16 @@
-# FastOMOP
+# FastOMOP - Toddler
 
+> **This repository is now archived and is here for historical reasons only.**
+>
+> **In the Agentic world a year can be an eon. Kids grow up.**
+>
+> We conducted many experiments and learnt a bunch of stuff.
+>
+> It was faster to iterate on code than sketch the whole thing out on Miro.
+>
+> Because by the time you plan your product, the AI landscape has changed already - _John Lennon,Allen Sanders_
+>
+> There is no detailed documentation to follow here. But do come back in a few weeks for a fresh experiment. Maybe this one will save the world. 
 
 **Detailed documentation to follow**
 
